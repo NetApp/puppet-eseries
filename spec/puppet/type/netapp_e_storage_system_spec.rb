@@ -1,39 +1,5 @@
 require 'spec/spec_helper'
-require 'rspec/expectations'
-
-shared_examples 'a string param/property' do |param_name, special_characters|
-  it 'should support letters' do
-    value = ('a'..'z').to_a.join ''
-    resource[param_name] = value
-    described_class.new(resource)[param_name].should == value
-  end
-  it 'should support digits' do
-    value = ('0'..'9').to_a.join ''
-    resource[param_name] = value
-    described_class.new(resource)[param_name].should == value
-  end
-  it 'should support underscore' do
-    value = '__'
-    resource[param_name] = value
-    described_class.new(resource)[param_name].should == value
-  end
-  if special_characters
-    it 'should support special characters and spaces' do
-      '!£§!@#$%^&*()-+=[]{};\':"\|?/.>,<~` '.split('').each do |char|
-        value = 'my' + char + 'name'
-        resource[param_name] = value
-        described_class.new(resource)[param_name].should == value
-      end
-    end
-  else
-    it 'should not support special characters and spaces' do
-      '!£§!@#$%^&*()-+=[]{};\':"\|?/.>,<~` '.split('').each do |char|
-        resource[param_name] = char
-        expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
-      end
-    end
-  end
-end
+require 'spec/support/shared_examples_for_types'
 
 describe Puppet::Type.type(:netapp_e_storage_system) do
   before :each do

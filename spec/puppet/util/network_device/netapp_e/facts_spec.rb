@@ -1,5 +1,4 @@
 require 'spec/spec_helper'
-require 'rspec/expectations'
 
 describe Puppet::Util::NetworkDevice::Netapp_e::Facts do
   before(:each) do

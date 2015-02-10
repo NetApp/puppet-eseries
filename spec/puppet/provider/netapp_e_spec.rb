@@ -1,5 +1,4 @@
 require 'spec/spec_helper'
-require 'rspec/expectations'
 
 describe Puppet::Provider::Netapp_e do
   before(:each) do

@@ -1,4 +1,5 @@
 require 'rspec'
+require 'rspec/expectations'
 require 'rspec/autorun'
 require 'puppetlabs_spec_helper/module_spec_helper'
 
