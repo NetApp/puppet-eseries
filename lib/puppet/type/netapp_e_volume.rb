@@ -69,7 +69,7 @@ Puppet::Type.newtype(:netapp_e_volume) do
   newparam(:defaultmapping) do
     desc 'Create the default volume mapping.'
     defaultto :false
-    newvalues(:true, false)
+    newvalues(:true, :false)
   end
 
   newparam(:expansionpolicy) do
@@ -81,6 +81,6 @@ Puppet::Type.newtype(:netapp_e_volume) do
   newparam(:cachereadahead) do
     desc 'If true automatic cache read-ahead enabled'
     defaultto :false
-    newvalues(:true, false)
+    newvalues(:true, :false)
   end
 end
