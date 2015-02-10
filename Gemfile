@@ -8,7 +8,7 @@ gem 'facter', '>= 1.7.0'
 gem 'excon'
 
 group :development do
-  gem 'rspec', '~> 3.0'
+  gem 'rspec', '= 3.1.0'
   gem 'rspec-legacy_formatters'
 end
 
