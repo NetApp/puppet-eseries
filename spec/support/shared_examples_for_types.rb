@@ -68,3 +68,14 @@ end
 shared_examples 'a boolish param/property' do |param_name, default|
   include_examples 'a enum param/property', param_name, [true, :true, false, :false], default
 end
+
+shared_examples 'a array_matching param' do |param_name, single, array|
+  it 'should support array' do
+    resource[param_name] = array
+    described_class.new(resource)[param_name].should == array
+  end
+  it 'should support single value' do
+    resource[param_name] = single
+    described_class.new(resource)[param_name].should == single
+  end
+end
