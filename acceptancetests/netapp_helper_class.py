@@ -204,6 +204,15 @@ class MyTestSuite(unittest2.TestCase):
 
         return dict
 
+########################################################################################################################
+    @classmethod
+    def get_random_mac(cls):
+        random_mac = [0x00, 0x24, 0x81,
+                      random.randint(0x00, 0x7f),
+                      random.randint(0x00, 0xff),
+                      random.randint(0x00, 0xff) ]
+
+        return ''.join(map(lambda x: "%02x" % x, random_mac))
 
 ########################################################################################################################
 
