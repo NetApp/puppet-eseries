@@ -55,7 +55,7 @@ netapp_e_network_interface {{"{macAddr}":
 
 ##################################### HERE COME REAL TESTING!!! ################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_storage_system(self):
         '''
         Testing of adding netapp_e_storage_system to proxy db
@@ -88,7 +88,7 @@ netapp_e_network_interface {{"{macAddr}":
 
 ########################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_storage_system_without_controllers(self):
         '''
          Test of adding netapp_e_storage_system without controller (and password option)
@@ -122,7 +122,7 @@ netapp_e_network_interface {{"{macAddr}":
 
 ########################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_storage_system_duplicate_ip_negative(self):
         '''
         Test of adding two netapp_e_storage_system's with different names but same ips to proxy db
@@ -169,7 +169,7 @@ netapp_e_network_interface {{"{macAddr}":
 
 ########################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_storage_system_duplicate_name_negative(self):
         '''
         Test of adding two netapp_e_storage_system's with same names to proxy db
@@ -213,7 +213,7 @@ netapp_e_network_interface {{"{macAddr}":
 
 ########################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_storage_system_ensure_absent(self):
         '''
         Test of removing netapp_e_storage_system from  proxy db
@@ -262,7 +262,7 @@ netapp_e_network_interface {{"{macAddr}":
 
 ########################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_storage_system_ensure_absent_invalid_ip_negative(self):
         '''
         Test of removing  netapp_e_storage_system with correct names but different ips from proxy db
@@ -309,7 +309,7 @@ netapp_e_network_interface {{"{macAddr}":
 
 #####################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_netapp_password_set_negative(self):
         '''
         Test of setting initially invalid password
@@ -352,7 +352,7 @@ netapp_e_network_interface {{"{macAddr}":
 
 #####################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_netapp_password_set(self):
         '''
         Test of setting valid password
@@ -418,7 +418,7 @@ netapp_e_network_interface {{"{macAddr}":
         assert True
 
 #####################################################################################################################
-    #@unittest2.skip('')
+    @unittest2.skip('Incomplete test')
     def test_netapp_interface_set(self):
         '''
         Test of change ip address on controller

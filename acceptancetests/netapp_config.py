@@ -39,5 +39,4 @@ session.headers.update({'Accept': 'application/json'}) #Always expect to receive
 
 base_url = server_root_url + api_path
 
-array_addresses = ['10.250.117.112','10.250.117.199']
 

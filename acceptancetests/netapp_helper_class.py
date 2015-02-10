@@ -243,8 +243,6 @@ class MyTestSuite(unittest2.TestCase):
         cls.second_system_ip2 = configuration.second_system_ip2
         cls.second_system_pass = configuration.second_system_pass
 
-        cls.array_addresses = configuration.array_addresses
-
         # Save current site.pp
         cls.bck_manifest_name = cls.manifest_path + \
                                 '/site.pp.' + \
