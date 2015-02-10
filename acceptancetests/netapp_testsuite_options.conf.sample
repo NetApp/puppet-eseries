@@ -1,0 +1,27 @@
+
+[netapp]
+
+host = http://localhost
+port = 8080
+userId = rw
+password = rw
+
+
+[puppet]
+
+manifest_path = /etc/puppet/manifests
+
+[tests]
+
+first_system_id   = first
+first_system_ip1  = 10.10.10.7
+first_system_ip2  = 10.10.10.8
+first_system_pass = 123Pass
+first_system_test_pass = Pass123
+first_system_test_ip = 10.10.10.9
+
+second_system_id   = second
+second_system_ip1  =
+second_system_ip2  =
+second_system_pass =
+
