@@ -62,6 +62,16 @@ describe Puppet::Type.type(:netapp_e_storage_system) do
         resource[:controllers] = controller
         described_class.new(resource)[:controllers].should == controller
       end
+      it 'should not support bad IP vp6' do
+        controller = '2001:0db8:0:0::1428:5abbla'
+        resource[:controllers] = controller
+        expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
+      end
+      it 'should not support bad IP vp4' do
+        controller = '10.350.117.116'
+        resource[:controllers] = controller
+        expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
+      end
     end
 
     context 'for meta_tags' do
