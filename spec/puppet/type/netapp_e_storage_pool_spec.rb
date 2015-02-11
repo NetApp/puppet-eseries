@@ -1,9 +1,7 @@
 require 'spec/spec_helper'
 require 'spec/support/shared_examples_for_types'
 
-
 describe Puppet::Type.type(:netapp_e_storage_pool) do
-
   before :each do
     @netapp_e_storage_pool = { :name => 'netapp_e_storage_pool' }
     described_class.stubs(:defaultprovider).returns providerclass
@@ -28,8 +26,9 @@ describe Puppet::Type.type(:netapp_e_storage_pool) do
       end
     end
 
-    [:id, :raidlevel].each do |prop|
+    [:id, :raidlevel, :ensure].each do |prop|
       it "should have a #{prop} property" do
+        resource[:id] = 'id'
         described_class.attrtype(prop).should == :property
       end
     end
@@ -41,8 +40,7 @@ describe Puppet::Type.type(:netapp_e_storage_pool) do
     end
     context 'for diskids' do
       it_behaves_like 'a string param/property', :diskids, true
-      it_behaves_like 'a array_matching param', :diskids, 'val', %w'val1 val2'
-
+      it_behaves_like 'a array_matching param', :diskids, 'val', %w(val1 val2)
     end
     context 'for storagesystem' do
       it_behaves_like 'a string param/property', :storagesystem, true
@@ -57,5 +55,4 @@ describe Puppet::Type.type(:netapp_e_storage_pool) do
       it_behaves_like 'a enum param/property', :raidlevel, %w(raidUnsupported raidAll raid0 raid1 raid3 raid5 raid6 raidDiskPool __UNDEFINED)
     end
   end
-
 end
