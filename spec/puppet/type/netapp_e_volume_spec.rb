@@ -27,7 +27,7 @@ describe Puppet::Type.type(:netapp_e_volume) do
       end
     end
 
-    [:id, :poolid].each do |prop|
+    [:id, :poolid, :ensure].each do |prop|
       it "should have a #{prop} property" do
         described_class.attrtype(prop).should == :property
       end
