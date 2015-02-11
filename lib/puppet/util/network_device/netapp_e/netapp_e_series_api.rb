@@ -197,7 +197,6 @@ class NetApp
         all_storage_pools
       end
 
-
       # Call storage-pool API /devmgr/v2/{storage-system-id}/storage-pools to create a volume group or a disk pool.
       # Disk pool can be created only with raid level 'raidDiskPool'.
       def create_storage_pool(sys_id, request_body)
@@ -290,8 +289,8 @@ class NetApp
       end
 
       # Get the storage-pool-id using storage-system-ip and storage-pool name
-      def storage_pool_id(storage_sys_id, name)
-        response = request(:get, "/devmgr/v2/storage-systems/#{storage_sys_id}/storage-pools")
+      def storage_pool_id(sys_id, name)
+        response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/storage-pools")
         status(response, 200, 'Failed to get pool id')
         storage_pools = JSON.parse(response.body)
         storage_pools.each do |pool|
@@ -320,6 +319,41 @@ class NetApp
           return host['id'] if host['label'] == name
         end
         nil
+      end
+
+      def get_snapshot_groups
+        ids = get_storage_systems_id
+        all_snapshot_groups = []
+        if not ids.empty?
+          ids.each do |sys_id|
+            response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/snapshot-groups/")
+            status(response, 200, 'Failed to get snapshot group information')
+            snapshot_groups =  JSON.parse(response.body)
+
+            # add sys_id to pool hash
+            storage_system = { 'storagesystem' => sys_id }
+            snapshot_groups.map! { |group| group.merge(storage_system) }
+
+            all_snapshot_groups << snapshot_groups
+          end
+          all_snapshot_groups = all_snapshot_groups.reduce(:concat)
+        end
+        all_snapshot_groups
+      end
+
+      def create_snapshot_group(sys_id, request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/snapshot-groups", request_body.to_json)
+        status(response, 200, 'Failed to creat snapshot group')
+      end
+
+      def delete_snapshot_group(sys_id, snapshot_id)
+        response = request(:delete, "/devmgr/v2/storage-systems/#{sys_id}/snapshot-groups/#{snapshot_id}")
+        status(response, 204, 'Failed to delete snapshot group')
+      end
+
+      def update_snapshot_group(sys_id, snapshot_id, request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/snapshot-groups/#{snapshot_id}", request_body.to_json)
+        status(response, 200, 'Failed to update snapshot group')
       end
 
       private

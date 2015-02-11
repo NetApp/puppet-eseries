@@ -337,6 +337,37 @@ describe NetApp::ESeries::Api do
     end
   end
 
+  context 'get_snapshot_groups' do
+    it_behaves_like 'a call based on storage systems', 'snapshot-groups/' do
+      let(:method_call) { @netapp_api.get_snapshot_groups }
+      let(:fail_message) { 'Failed to get snapshot group information' }
+    end
+  end
+
+  context 'create_snapshot_group' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) {'/devmgr/v2/storage-systems/sys_id/snapshot-groups' }
+      let(:method_call) { @netapp_api.create_snapshot_group 'sys_id', @request_body }
+      let(:fail_message) { 'Failed to creat snapshot group' }
+    end
+  end
+
+  context 'delete_snapshot_group' do
+    it_behaves_like 'a simple API call', :delete, 204 do
+      let(:uri) {'/devmgr/v2/storage-systems/sys_id/snapshot-groups/sg_id' }
+      let(:method_call) { @netapp_api.delete_snapshot_group 'sys_id', 'sg_id' }
+      let(:fail_message) { 'Failed to delete snapshot group' }
+    end
+  end
+
+  context 'update_snapshot_group' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) {'/devmgr/v2/storage-systems/sys_id/snapshot-groups/sg_id' }
+      let(:method_call) { @netapp_api.update_snapshot_group 'sys_id', 'sg_id', @request_body }
+      let(:fail_message) { 'Failed to update snapshot group' }
+    end
+  end
+
   context 'get_volumes' do
     before(:each) do
       @storage_req = @expect_in_request.merge(
@@ -404,10 +435,6 @@ describe NetApp::ESeries::Api do
       let(:method_call) { @netapp_api.create_volume 'sys_id', @request_body }
       let(:fail_message) { 'Failed to create volume' }
     end
-  end
-
-  context 'update_volume' do
-    # TODO: function is not working (should be deleted in future)
   end
 
   context 'delete_volume' do
