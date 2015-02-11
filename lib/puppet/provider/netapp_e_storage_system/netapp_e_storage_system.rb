@@ -50,6 +50,10 @@ Puppet::Type.type(:netapp_e_storage_system).provide(:netapp_e_storage_system, :p
     @property_hash[:ensure] == :present
   end
 
+  def meta_tags=(value)
+    @property_flush[:meta_tags] = value
+  end
+
   def flush
     if not @property_flush.empty?
       if @property_flush[:ensure] == :absent
@@ -57,7 +61,7 @@ Puppet::Type.type(:netapp_e_storage_system).provide(:netapp_e_storage_system, :p
         return
       end
       request_body = {}
-      request_body[:meta_tags] = resource[:meta_tags] if @property_flush[:meta_tags]
+      request_body[:metaTags] = resource[:meta_tags] if @property_flush[:meta_tags]
       transport.update_storage_system(resource[:name], request_body)
     end
   end

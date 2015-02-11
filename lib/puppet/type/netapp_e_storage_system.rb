@@ -46,9 +46,27 @@ Puppet::Type.newtype(:netapp_e_storage_system) do
   newproperty(:meta_tags, :array_matching => :all) do
     desc 'Optional meta tags to associate to this storage system.'
     validate do |value|
-      unless value.is_a?(Hash)
+      if not value.is_a?(Hash)
         fail("#{value} is not a Hash")
+      elsif value.empty?
+        fail('Do not pass empty hash') 
       end
+    end
+
+    def insync?(is)
+       sync = true
+
+       return false if is.empty? and not should.empty?
+       fail('You must pass some hash') if should.empty?
+       current = is.sort_by {|hsh| hsh['key']} unless is.empty?
+       new = @should.sort_by {|hsh| hsh['key']}
+
+       current.zip(new).each do |x, y|
+         return false if  x.nil? or y.nil?
+         sync = false unless x['valueList'].sort == y['valueList'].sort
+         sync = false unless x['key'] == y['key']
+       end
+       sync
     end
   end
 end

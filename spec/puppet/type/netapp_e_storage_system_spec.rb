@@ -95,6 +95,10 @@ describe Puppet::Type.type(:netapp_e_storage_system) do
         resource[:meta_tags] = 'tag'
         expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
       end
+      it 'should not support empty hash' do
+        resource[:meta_tags] = [{}]
+        expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
+      end
     end
   end
 end
