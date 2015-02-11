@@ -52,7 +52,7 @@ describe Puppet::Type.type(:netapp_e_password) do
       it 'should set password when sync' do
         res = described_class.new(resource)
         pass = double(:pas)
-        expect(res.provider).to receive(:set_password)
+        expect(res.provider).to receive(:set_password) { pass }
         expect(res.property(:ensure).sync).to be pass
       end
       it_behaves_like 'a enum param/property', :ensure, %w(set notset), :set
