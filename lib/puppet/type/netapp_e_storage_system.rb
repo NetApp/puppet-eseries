@@ -51,13 +51,21 @@ Puppet::Type.newtype(:netapp_e_storage_system) do
       elsif value.empty?
         fail('Do not pass empty hash') 
       end
+
+      fail('You need to pass key and valueList keys in hash') unless ['key', 'valueList'].all? {|k| value.has_key? k}
+      fail('Do not pass another keys than: key, valueList') if not (value.keys - ['key', 'valueList']).empty?
+      fail('value of key should be a String') unless value['key'].is_a? String
+      value['valueList'].each do |val|
+        fail('valueList should only contain strings') unless val.is_a? String
+      end
     end
 
     def insync?(is)
        sync = true
 
-       return false if is.empty? and not should.empty?
        fail('You must pass some hash') if should.empty?
+       return false unless is.length == @should.length
+       return false if is.empty? and not should.empty?
        current = is.sort_by {|hsh| hsh['key']} unless is.empty?
        new = @should.sort_by {|hsh| hsh['key']}
 
