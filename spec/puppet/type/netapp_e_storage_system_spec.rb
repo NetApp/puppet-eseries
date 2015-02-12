@@ -84,7 +84,7 @@ describe Puppet::Type.type(:netapp_e_storage_system) do
       it 'should not support hash with extra keys' do
         tag = tags[0].dup
         tag['extra_key'] = 'extra_value'
-        resource[:meta_tags] = tags
+        resource[:meta_tags] = [tag]
         expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
       end
       it 'should not support hash with missing keys' do
