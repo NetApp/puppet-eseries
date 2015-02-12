@@ -72,6 +72,91 @@ describe Puppet::Type.type(:netapp_e_storage_system) do
         resource[:meta_tags] = [{}]
         expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
       end
+      it 'should not support hash with wrong keys' do
+        tags = [{ 'wrong_key' => 'third_key', 'valueList' => %w(343 ab) }]
+        resource[:meta_tags] = tags
+        expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
+
+        tags = [{ 'key' => 'third_key', 'wrong_key' => %w(343 ab) }]
+        resource[:meta_tags] = tags
+        expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
+      end
+      it 'should not support hash with extra keys' do
+        tag = tags[0].dup
+        tag['extra_key'] = 'extra_value'
+        resource[:meta_tags] = tags
+        expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
+      end
+      it 'should not support hash with missing keys' do
+        tags = [{ 'valueList' => %w(343 ab) }]
+        resource[:meta_tags] = tags
+        expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
+
+        tags = [{ 'key' => 'third_key' }]
+        resource[:meta_tags] = tags
+        expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
+      end
+      it 'should support empty valueList' do
+        tag = tags[0].dup
+        tag['valueList'] = []
+        resource[:meta_tags] = [tag]
+        described_class.new(resource)[:meta_tags][0]['valueList'].should == []
+      end
+      it 'should not support valueList as array of not strings' do
+        [1, :symbol, true, :false, ['array'], { 'hash' => 'value' }].each do |val|
+          tag = tags[0].dup
+          tag['valueList'] = [val, 'string', val]
+          resource[:meta_tags] = [tag]
+          expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
+        end
+      end
+      it 'should not support key  as not string' do
+        [1, :symbol, true, :false, ['array'], { 'hash' => 'value' }].each do |val|
+          tag = tags[0].dup
+          tag['key'] = val
+          resource[:meta_tags] = [tag]
+          expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
+        end
+      end
+      describe 'when calling insync?' do
+        before(:each) do
+          resource[:meta_tags] = tags
+          @property = described_class.new(resource).property('meta_tags')
+        end
+        it 'should return false if "is" is empty' do
+          expect(@property.insync? '').to be false
+        end
+        it 'should return true if "is" is equal to should' do
+          expect(@property.insync? tags.dup).to be true
+        end
+        it 'should return false if "is" array have less values' do
+          expect(@property.insync? [tags[0]]).to be false
+        end
+        it 'should return false if  "is" have more values' do
+          is = tags.dup
+          is << { 'key' => 'third_key', 'valueList' => %w(343 ab) }
+          expect(@property.insync? is).to be false
+        end
+        it 'should return false if "should" array have less values' do
+          resource[:meta_tags] = [tags[0]]
+          property = described_class.new(resource).property('meta_tags')
+          expect(property.insync? tags).to be false
+        end
+        it 'should return false if "should" have more values' do
+          resource[:meta_tags] = tags.dup
+          resource[:meta_tags] << { 'key' => 'third_key', 'valueList' => %w(343 ab) }
+          property = described_class.new(resource).property('meta_tags')
+          expect(property.insync? tags).to be false
+        end
+        it 'should fail if "should" is empty' do
+          resource[:meta_tags] = []
+          property = described_class.new(resource).property('meta_tags')
+          expect { property.insync? tags }.to raise_error Puppet::Error
+        end
+        it 'should return true if "is" and "should" are same but in diffrent order' do
+          expect(@property.insync? tags.dup.reverse).to be true
+        end
+      end
     end
   end
 end
