@@ -79,3 +79,31 @@ shared_examples 'a array_matching param' do |param_name, single, array|
     described_class.new(resource)[param_name].should == single
   end
 end
+
+shared_examples 'a IPv4 param/property' do |param_name|
+  it 'should support single value IPv4' do
+    value = '10.250.117.116'
+    resource[param_name] = value
+    described_class.new(resource)[param_name].should == value
+  end
+  it 'should not support bad IPv4' do
+    %w(10.350.117.116, 10.350.117).each do |val|
+      resource[param_name] = val
+      expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
+    end
+  end
+end
+
+shared_examples 'a IPv6 param/property' do |param_name|
+  it 'should support single value IPv6' do
+    %w(2001:0db8:0:0::1428:57ab 2001:0db8:0000:0000:0000:0000:1428:57ab).each do |val|
+      resource[param_name] = val
+      described_class.new(resource)[param_name].should == val
+    end
+  end
+  it 'should not support bad IPv6' do
+    value = '2001:0db8:0:0::1428:5abbla'
+    resource[param_name] = value
+    expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
+  end
+end
