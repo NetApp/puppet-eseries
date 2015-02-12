@@ -27,7 +27,7 @@ end
 shared_examples 'a call based on storage systems' do |uri_suffix|
   before(:each) do
     @storage_req = @expect_in_request.merge(
-      :url => @url + '/devmgr/v2/storage-systems/')
+        :url => @url + '/devmgr/v2/storage-systems/')
   end
   it 'should return empty array if no storage systems' do
     @response.merge!(:body => JSON.generate([]))
@@ -83,7 +83,7 @@ describe NetApp::ESeries::Api do
                'first_key' => 'first_value1',
                'second_key' => 'second_value2',
                'third_key' => 'third_value3'
-               }]
+             }]
     @request_body = double('request_body')
     allow(@request_body).to receive(:to_json).and_return(JSON.generate(@body))
 
@@ -218,7 +218,7 @@ describe NetApp::ESeries::Api do
   context 'get_hosts' do
     before(:each) do
       @storage_req = @expect_in_request.merge(
-        :url => @url + '/devmgr/v2/storage-systems/')
+          :url => @url + '/devmgr/v2/storage-systems/')
     end
     it 'should return empty array if no storage systems' do
       @response.merge!(:body => JSON.generate([]))
@@ -235,13 +235,13 @@ describe NetApp::ESeries::Api do
           item = { 'storage_id' => i['id'],
                    'hostSidePorts' => ['address' => 'fqdn.domain.com'],
                    'initiators' => ['initiatorRef' => 'abc1234']
-                 }
+          }
           expected_item = { 'storage_id' => i['id'],
                             'hostSidePorts' => ['port' => 'fqdn.domain.com'],
                             'initiators' => ['initiatorRef' => 'abc1234'],
                             'storagesystem' => i['id'],
                             'initiators_ref_numbers' => ['abc1234']
-                          }
+          }
           @expected << expected_item
 
           url = @url + "/devmgr/v2/storage-systems/#{i['id']}/hosts"
@@ -346,7 +346,7 @@ describe NetApp::ESeries::Api do
 
   context 'create_snapshot_group' do
     it_behaves_like 'a simple API call', :post, 200 do
-      let(:uri) {'/devmgr/v2/storage-systems/sys_id/snapshot-groups' }
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/snapshot-groups' }
       let(:method_call) { @netapp_api.create_snapshot_group 'sys_id', @request_body }
       let(:fail_message) { 'Failed to creat snapshot group' }
     end
@@ -354,7 +354,7 @@ describe NetApp::ESeries::Api do
 
   context 'delete_snapshot_group' do
     it_behaves_like 'a simple API call', :delete, 204 do
-      let(:uri) {'/devmgr/v2/storage-systems/sys_id/snapshot-groups/sg_id' }
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/snapshot-groups/sg_id' }
       let(:method_call) { @netapp_api.delete_snapshot_group 'sys_id', 'sg_id' }
       let(:fail_message) { 'Failed to delete snapshot group' }
     end
@@ -362,7 +362,7 @@ describe NetApp::ESeries::Api do
 
   context 'update_snapshot_group' do
     it_behaves_like 'a simple API call', :post, 200 do
-      let(:uri) {'/devmgr/v2/storage-systems/sys_id/snapshot-groups/sg_id' }
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/snapshot-groups/sg_id' }
       let(:method_call) { @netapp_api.update_snapshot_group 'sys_id', 'sg_id', @request_body }
       let(:fail_message) { 'Failed to update snapshot group' }
     end
@@ -371,7 +371,7 @@ describe NetApp::ESeries::Api do
   context 'get_volumes' do
     before(:each) do
       @storage_req = @expect_in_request.merge(
-        :url => @url + '/devmgr/v2/storage-systems/')
+          :url => @url + '/devmgr/v2/storage-systems/')
     end
     it 'should return empty array if no storage systems' do
       @response.merge!(:body => JSON.generate([]))
