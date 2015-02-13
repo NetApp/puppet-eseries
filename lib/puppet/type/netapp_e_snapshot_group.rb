@@ -5,6 +5,16 @@ Puppet::Type.newtype(:netapp_e_snapshot_group) do
   apply_to_device
   ensurable
 
+  validate do
+    raise Puppet::Error, 'You must specify a storage system.' unless @parameters.include?(:storagesystem)
+    raise Puppet::Error, 'You must specify a volume.' unless @parameters.include?(:volume)
+    raise Puppet::Error, 'You must specify a name.' unless @parameters.include?(:name)
+    raise Puppet::Error, 'You must specify a warning threshold.' unless @parameters.include?(:warnthreshold)
+    raise Puppet::Error, 'You must specify a limit' unless @parameters.include?(:limit)
+    raise Puppet::Error, 'You must specify a policy' unless @parameters.include?(:policy)
+    raise Puppet::Error, 'You must specify a storage pool' unless @parameters.include?(:storagepool)
+  end
+
   newparam(:name, :namevar => true) do
     desc 'The name of the new snapshot group.'
   end
