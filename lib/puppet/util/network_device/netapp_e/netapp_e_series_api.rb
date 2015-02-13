@@ -356,6 +356,59 @@ class NetApp
         status(response, 200, 'Failed to update snapshot group')
       end
 
+      def get_snapshot_volumes
+        ids = get_storage_systems_id
+        all_snapshot_volumes = []
+        if not ids.empty?
+          ids.each do |sys_id|
+            response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/snapshot-volumes")
+            status(response, 200, 'Could not get snapshot volumes information')
+            volumes = JSON.parse(response.body)
+            # add sys_id to volume hash
+            storage_system = { 'storagesystem' => sys_id }
+            volumes.map! { |hg| hg.merge(storage_system) }
+            all_snapshot_volumes << volumes
+          end
+          all_snapshot_volumes = all_snapshot_volumes.reduce(:concat)
+        end
+        all_snapshot_volumes
+      end
+
+      def create_snapshot_volume(sys_id, request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/snapshot-volumes", request_body.to_json)
+        status(response, 200, 'Failed to create snapshot volume')
+      end
+
+      def delete_snapshot_volume(sys_id, sv_id)
+        response = request(:delete, "/devmgr/v2/storage-systems/#{sys_id}/snapshot-volumes/#{sv_id}")
+        status(response, 204, 'Failed to delete snapshot volume')
+      end
+
+      def update_snapshot_volume(sys_id, sv_id, request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/snapshot-volumes/#{sv_id}", request_body.to_json)
+        status(response, 200, 'Failed to update snapshot volume')
+      end
+
+      def volume_copy_id(sys_id, source, target)
+        response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/volume-copy-jobs")
+        status(response, 200, 'Failed to get volume copy jobs')
+        volume_copies = JSON.parse(response.body)
+        volume_copies.each do |vc|
+          return vc['id'] if vc['sourceVolume'] == source and vc['targetVolume'] == target
+        end
+        false
+      end
+
+      def create_volume_copy(sys_id, request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/volume-copy-jobs", request_body.to_json)
+        status(response, 200, 'Failed to create volume copy')
+      end
+
+      def delete_volume_copy(sys_id, vc_id)
+        response = request(:delete, "/devmgr/v2/storage-systems/#{sys_id}/volume-copy-jobs/#{vc_id}")
+        status(response, 204, 'Failed to delete volume copy jobs')
+      end
+
       private
 
       # Determine the status of the response
