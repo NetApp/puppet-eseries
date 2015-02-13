@@ -13,6 +13,8 @@ import datetime
 import logging
 import random
 
+import pprint
+
 class MyTestSuite(unittest2.TestCase):
 
     cookie = None
@@ -34,6 +36,74 @@ class MyTestSuite(unittest2.TestCase):
     first_system_pass = None
     first_system_test_pass = None
     first_system_test_ip = None
+
+########################################################################################################################
+
+    # IMPORTANT - one line for one option!!!
+
+    manifest_frame = 'node "netapp.local" {{\n {inner_sections}\n }}\n'
+
+    manifest_storage_system_section = \
+'''
+ netapp_e_storage_system {{"{system_id}":
+      controllers => ["{system_ip1}","{system_ip2}"],
+      password    => "{system_pass}",
+      ensure      => {ensure},
+    }}
+
+    notify {{'{signature}':}}
+
+'''
+
+    manifest_storage_password_section = \
+'''
+       netapp_e_password {{"{system_id}":
+
+         current => "{current_password}",
+         new     => "{new_password}",
+         admin   => {admin},
+         force   => {force},
+
+       }}
+'''
+
+    manifest_storage_interface_section = \
+'''
+netapp_e_network_interface {{"{macAddr}":
+            storagesystem => "{system_id}",
+            ipv4          => {ipv4},
+            ipv4config    => "{ipv4config}",
+            ipv4address   => "{ipv4address}",
+            ipv4gateway   => "{ipv4gateway}",
+            ipv4mask      => "{ipv4mask}",
+            remoteaccess  => {remoteaccess},
+         }}
+'''
+
+    # IMPORTANT - all 'disksid' in one line
+    manifest_storage_pool_section = \
+'''
+  netapp_e_storage_pool {{'{pool_id}':
+      ensure        => {ensure},
+      storagesystem => "{system_id}",
+      raidlevel     => '{raidlevel}',
+      diskids       => {diskids},
+    }}
+'''
+
+    manifest_storage_volume_section = \
+'''
+    netapp_e_volume {{'{volume_id}':
+      require =>  Netapp_e_storage_pool['{pool_id}'],
+      ensure        => {ensure},
+      storagesystem => "{system_id}",
+      size          => {size},
+      storagepool   => '{pool_id}',
+      sizeunit      => '{sizeunit}',
+      segsize       => '{segsize}',
+      thin          => {thin},
+    }}
+'''
 
 
 ########################################################################################################################
@@ -143,6 +213,9 @@ class MyTestSuite(unittest2.TestCase):
             if re.match(r'^BANANA[0-9]?_',i):
                 cls.log.debug("Delete '{system_id}' system by REST ...".format(system_id=i))
                 generic_delete('storage-system',array_id=i)
+
+        # TODO For each BANANA system rid BANANA objects :)
+
         return
 
 ########################################################################################################################
@@ -163,7 +236,9 @@ class MyTestSuite(unittest2.TestCase):
     def restore_first_system_by_REST(cls):
 
         if cls.first_system_id not in cls.get_system_list():
-            data = {  "id": cls.first_system_id,   "controllerAddresses": [cls.first_system_ip1,cls.first_system_ip1], "password":cls.first_system_pass}
+            data = {"id": cls.first_system_id,
+                    "controllerAddresses": [cls.first_system_ip1, cls.first_system_ip1],
+                    "password": cls.first_system_pass}
             first_system = generic_post('storage-systems', data)
 
         return
@@ -178,6 +253,18 @@ class MyTestSuite(unittest2.TestCase):
                 result = result + l + '\n'
         return result
 
+########################################################################################################################
+
+    @classmethod
+    def insert_line_to_multiline_regexp(cls, multiline, pattern, line):
+        result = ''
+        flag = True
+        for l in cls.parse_multiline(multiline):
+            result = result + l + '\n'
+            if re.search(pattern, l) and flag:
+                result = result + line + '\n'
+                flag = False
+        return result
 
 ########################################################################################################################
 
@@ -191,6 +278,7 @@ class MyTestSuite(unittest2.TestCase):
         return actual_ips
 
 ########################################################################################################################
+
     # Construct dictionary for manifest section of first system
     @classmethod
     def construct_dict_for_first_system(cls, signature='BANANA_{0}', rand_hash=hex(random.getrandbits(24))[2:-1]):
@@ -205,6 +293,44 @@ class MyTestSuite(unittest2.TestCase):
         return dict
 
 ########################################################################################################################
+
+    @classmethod
+    def get_free_disk(cls, system_id, except_disks=(), number=1):
+        disks=[]
+        for i in generic_get('drives', array_id=system_id):
+            if re.match('^0*$', i['currentVolumeGroupRef']):
+                if i['id'] not in except_disks:
+                    disks.append(str(i['id'].encode('utf-8').decode('ascii', 'ignore')))
+            if len(disks) == number:
+                break
+
+        if len(disks) < number:
+            raise RuntimeError('RUNTIME ERROR - THERE ARE NO TWO FREE DISKS ON STORAGE!!!')
+
+        return disks
+
+########################################################################################################################
+    @classmethod
+    def remove_BANANA_objects(cls, system_id):
+
+        for volume in generic_get('volumes', array_id=system_id):
+            if re.search('BANANA_VOLUME', volume['label']):
+                cls.log.debug("DELETE VOLUME '{0}'!".format(volume['label']))
+                generic_delete('volume', id=volume['id'], array_id=system_id)
+
+        for thin_volume in generic_get('thin_volumes', array_id=system_id):
+            if re.search('BANANA_VOLUME', thin_volume['label']):
+                cls.log.debug("DELETE THIN VOLUME '{0}'!".format(thin_volume['label']))
+                generic_delete('thin_volume', id=thin_volume['id'], array_id=system_id)
+
+        for pool in generic_get('pools', array_id=system_id):
+            if re.search('BANANA_POOL', pool['label']):
+                cls.log.debug("DELETE POOL '{0}'!".format(pool['label']))
+                generic_delete('pool', id=pool['id'], array_id=system_id)
+
+        return
+########################################################################################################################
+
     @classmethod
     def get_random_mac(cls):
         random_mac = [0x00, 0x24, 0x81,

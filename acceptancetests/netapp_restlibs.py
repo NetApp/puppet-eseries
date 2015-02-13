@@ -17,7 +17,7 @@ resources = {
 'volumes': "/storage-systems/{array_id}/volumes",
 'volume': "/storage-systems/{array_id}/volumes/{id}",
 'thin_volumes' : "/storage-systems/{array_id}/thin-volumes",
-'thin_volume' : "/storage-systems/{array_id}/thin-volume/{id}",
+'thin_volume' : "/storage-systems/{array_id}/thin-volumes/{id}",
 'snapshot_groups': "/storage-systems/{array_id}/snapshot-groups",
 'snapshot_group': "/storage-systems/{array_id}/snapshot-groups/{id}",
 'snapshot_views': "/storage-systems/{array_id}/snapshot-volumes",
