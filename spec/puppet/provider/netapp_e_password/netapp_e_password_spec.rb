@@ -27,6 +27,7 @@ describe Puppet::Type.type(:netapp_e_password).provider(:netapp_e_password) do
   end
 
   context 'for set_password' do
+    it_behaves_like 'a method with error handling', :change_password, :set_password
     it 'should change password' do
       expect(@transport).to receive(:change_password).with('storagesystem',
                                                            :currentAdminPassword => resource[:current],
