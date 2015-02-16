@@ -1,5 +1,5 @@
 shared_examples 'a method with error handling' do |transport_method, provider_method|
-  it 'should raise Puppet::Error when something went wrong' do
+  it "should raise Puppet::Error when \"#{transport_method}\" raised error" do
     begin
       provider = resource.provider
       m = resource.provider.method(provider_method)

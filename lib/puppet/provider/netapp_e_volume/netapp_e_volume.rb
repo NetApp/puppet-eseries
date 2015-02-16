@@ -45,9 +45,9 @@ Puppet::Type.type(:netapp_e_volume).provide(:netapp_e_volume, :parent => Puppet:
         :expansionPolicy => resource[:expansionpolicy],
         :createDefaultMapping => resource[:defaultmapping],
         :cacheReadAhead => resource[:cachereadahead],
-        :repositorySize => resource[:repositorysize]
+        :repositorySize => resource[:repositorysize],
+        :dataAssuranceEnabled => resource[:dataassurance]
       }
-      request_body[:dataAssuranceEnabled] = resource[:dataassurance] if resource[:dataassurance]
       request_body[:growthAlertThreshold] = resource[:growthalertthreshold] if resource[:growthalertthreshold]
       request_body[:owningControllerId] = resource[:owningcontrollerid] if resource[:owningcontrollerid]
 
@@ -59,9 +59,9 @@ Puppet::Type.type(:netapp_e_volume).provide(:netapp_e_volume, :parent => Puppet:
         :name => resource[:name],
         :sizeUnit => resource[:sizeunit],
         :size => resource[:size],
-        :segSize => resource[:segsize]
+        :segSize => resource[:segsize],
+        :dataAssuranceEnabled => resource[:dataassurance]
       }
-      request_body[:dataAssuranceEnabled] = resource[:dataassurance] if resource[:dataassurance]
       transport.create_volume(resource[:storagesystem], request_body)
       Puppet.debug("Puppet::Provider::Netapp_e_volume: volume #{@resource[:name]} created successfully. \n")
     end
