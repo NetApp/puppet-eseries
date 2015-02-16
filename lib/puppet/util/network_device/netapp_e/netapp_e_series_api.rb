@@ -409,6 +409,21 @@ class NetApp
         status(response, 204, 'Failed to delete volume copy jobs')
       end
 
+      def create_snapshot_image(sys_id, request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/snapshot-images", request_body.to_json)
+        status(response, 200, 'Failed to create snapshot image')
+      end
+
+      def get_snapshot_group_id(sys_id, name)
+        response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/snapshot-groups")
+        status(response, 200, 'Failed to get snapshot group id')
+        snapshot_groups = JSON.parse(response.body)
+        snapshot_groups.each do |sg|
+          return sg['id'] if sg['label'] == name
+        end
+        false
+      end
+
       private
 
       # Determine the status of the response
