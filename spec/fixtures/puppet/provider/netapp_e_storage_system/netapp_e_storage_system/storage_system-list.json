@@ -1,0 +1,75 @@
+[
+  {
+    "id": "name",
+    "name": "",
+    "wwn": "wwn",
+    "passwordStatus": "PasswordStatus",
+    "passwordSet": false,
+    "status": "StorageSystemStatus",
+    "ip1": "10.250.117.116",
+    "ip2": "10.250.117.117",
+    "driveCount": 0,
+    "trayCount": 0,
+    "traceEnabled": false,
+    "types": "",
+    "model": "",
+    "metaTags": [
+      {
+        "key": "poweron",
+        "valueList": ["true"]
+      },
+      {
+        "key": "u89",
+        "valueList": ["11", "aab"]
+      }
+    ],
+    "hotSpareSize": 0,
+    "usedPoolSpace": 0,
+    "freePoolSpace": 0,
+    "unconfiguredSpace": 0,
+    "driveTypes": [
+      "DriveType"
+    ],
+    "hostSpareCountInStandby": 0,
+    "hotSpareCount": 0,
+    "hostSparesUsed": 0,
+    "bootTime": "",
+    "fwVersion": "",
+    "appVersion": "",
+    "bootVersion": "",
+    "nvsramVersion": "",
+    "chassisSerialNumber": "",
+    "accessVolume": {
+      "name": "",
+      "id": "",
+      "objectType": "ObjectType",
+      "currentControllerId": "",
+      "preferredControllerId": "",
+      "wwn": "wwn",
+      "totalSizeInBytes": 0,
+      "listOfMappings": [
+        {
+          "lunMappingRef": "",
+          "lun": 0,
+          "ssid": 0,
+          "perms": 0,
+          "volumeRef": "",
+          "type": "LUNMappingType",
+          "mapRef": ""
+        }
+      ],
+      "mapped": false,
+      "enabled": false,
+      "capacity": 0,
+      "volumeHandle": 0,
+      "accessVolumeRef": ""
+    },
+    "unconfiguredSpaceByDriveType": "Map[DriveType,long]",
+    "mediaScanPeriod": 0,
+    "securityKeyEnabled": false,
+    "freePoolSpaceAsString": "",
+    "hotSpareSizeAsString": "",
+    "unconfiguredSpaceAsStrings": "",
+    "usedPoolSpaceAsString": ""
+  }
+]
