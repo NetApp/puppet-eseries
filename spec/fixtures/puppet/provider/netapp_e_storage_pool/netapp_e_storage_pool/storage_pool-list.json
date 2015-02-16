@@ -1,0 +1,57 @@
+[
+  {
+    "storagesystem": "storagesystem",
+    "usedSpace": 0,
+    "totalRaidedSpace": 0,
+    "extents": [
+      {
+        "sectorOffset": 0,
+        "rawCapacity": 0,
+        "raidLevel": "RAIDLevel",
+        "volumeGroupRef": "",
+        "freeExtentRef": ""
+      }
+    ],
+    "largestFreeExtentSize": 0,
+    "raidStatus": "VolumeStatus",
+    "freeSpace": 0,
+    "id": "id",
+    "state": "VolumeGroupState",
+    "usage": "VolumeGroupUsage",
+    "volumeGroupRef": "",
+    "securityType": "SecurityType",
+    "offline": false,
+    "raidLevel": "raidUnsupported",
+    "label": "name",
+    "protectionInformationCapable": false,
+    "worldWideName": "",
+    "spindleSpeed": 0,
+    "sequenceNum": 0,
+    "trayLossProtection": false,
+    "spindleSpeedMatch": false,
+    "isInaccessible": false,
+    "volumeGroupData": {
+      "type": "VolumeGroupType",
+      "diskPoolData": {
+        "reconstructionReservedDriveCount": 0,
+        "reconstructionReservedAmt": 0,
+        "reconstructionReservedDriveCountCurrent": 0,
+        "poolUtilizationWarningThreshold": 0,
+        "poolUtilizationCriticalThreshold": 0,
+        "poolUtilizationState": "DiskPoolUtilizationState",
+        "unusableCapacity": 0,
+        "degradedReconstructPriority": "DiskPoolOperationPriority",
+        "criticalReconstructPriority": "DiskPoolOperationPriority",
+        "backgroundOperationPriority": "DiskPoolOperationPriority",
+        "allocGranularity": 0
+      }
+    },
+    "driveBlockFormat": "DriveBlockFormat",
+    "protectionInformationCapabilities": {
+      "protectionInformationCapable": false,
+      "protectionType": "ProtectionType"
+    },
+    "drawerLossProtection": false,
+    "reservedSpaceAllocated": false
+  }
+]
