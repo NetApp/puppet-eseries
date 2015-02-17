@@ -22,6 +22,8 @@ Puppet::Type.type(:netapp_e_storage_system).provide(:netapp_e_storage_system, :p
         :meta_tags => storage_system['metaTags']
       )
     end
+  rescue => detail
+    raise Puppet::Error, "#{detail}"
   end
 
   def self.prefetch(resources)
@@ -64,5 +66,7 @@ Puppet::Type.type(:netapp_e_storage_system).provide(:netapp_e_storage_system, :p
       request_body[:metaTags] = resource[:meta_tags] if @property_flush[:meta_tags]
       transport.update_storage_system(resource[:name], request_body)
     end
+  rescue => detail
+    raise Puppet::Error, "#{detail}"
   end
 end

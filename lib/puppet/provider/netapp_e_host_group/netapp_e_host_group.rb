@@ -28,21 +28,17 @@ Puppet::Type.type(:netapp_e_host_group).provide(:netapp_e_host_group, :parent =>
 
   def create
     request_body = { :name => resource[:name], :hosts => resource[:hosts] }
-    begin
-      transport.create_host_group(resource[:storagesystem], request_body)
-      Puppet.debug("Host group #{resource[:name]} created")
-    rescue => detail
-      raise Puppet::Error, "#{detail}"
-    end
+    transport.create_host_group(resource[:storagesystem], request_body)
+    Puppet.debug("Host group #{resource[:name]} created")
+  rescue => detail
+    raise Puppet::Error, "#{detail}"
   end
 
   def destroy
     Puppet.debug("Puppet::Provider::Netapp_e_host_group: destroying host group #{@resource[:name]}. \n")
-    begin
-      transport.delete_host_group(resource[:storagesystem], @property_hash[:id])
-    rescue => detail
-      raise Puppet::Error, "#{detail}"
-    end
+    transport.delete_host_group(resource[:storagesystem], @property_hash[:id])
+  rescue => detail
+    raise Puppet::Error, "#{detail}"
   end
 
   def exists?

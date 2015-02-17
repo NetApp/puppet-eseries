@@ -83,21 +83,25 @@ describe Puppet::Type.type(:netapp_e_storage_system).provider(:netapp_e_storage_
   end
 
   describe 'when destroying a resource' do
+    before :each do
+      resource.provider.destroy
+    end
     it_behaves_like 'a method with error handling', :delete_storage_system, :flush
     it 'should be able to delete it' do
       expect(@transport).to receive(:delete_storage_system).with(resource[:name])
       allow(resource.provider).to receive(:transport) { @transport }
-      resource.provider.destroy
       resource.provider.flush
     end
   end
 
   describe 'when modifying a resource' do
+    before :each do
+      resource.provider.meta_tags = resource[:meta_tags]
+    end
     it_behaves_like 'a method with error handling', :update_storage_system, :flush
     it 'should be able to modify an existing role' do
       # Need to have a resource present that we can modify
-      resource.provider.set(:name => resource[:name], :ensure => resource[:ensure])
-      resource.provider.meta_tags = resource[:meta_tags]
+      resource.provider.set(:name => resource[:name])
       expect(@transport).to receive(:update_storage_system).with(resource[:name], :metaTags => resource[:meta_tags])
       allow(resource.provider).to receive(:transport) { @transport }
       resource.provider.flush
