@@ -38,14 +38,14 @@ shared_examples 'a enum param/property' do |param_name, enum, default|
       it "#{val}" do
         resource[param_name] = val
         expected = val
-        if val == true
-          expected = :true
-        elsif val == false
-          expected = :false
+        if val == :true
+          expected = true
+        elsif val == :false
+          expected = false
         elsif val.instance_of?(String)
           expected = val.to_sym
         end
-        described_class.new(resource)[param_name].should == expected.to_sym
+        described_class.new(resource)[param_name].should == expected
       end
     end
   end
@@ -60,7 +60,10 @@ shared_examples 'a enum param/property' do |param_name, enum, default|
   end
   unless default.nil?
     it "should have default value set to #{default}" do
-      described_class.new(resource)[param_name].should == default.to_sym
+      if default.instance_of?(String)
+        default = default.to_sym
+      end
+      described_class.new(resource)[param_name].should == default
     end
   end
 end

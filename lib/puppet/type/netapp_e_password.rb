@@ -28,7 +28,7 @@ Puppet::Type.newtype(:netapp_e_password) do
     defaultto :set
 
     def retrieve
-      if resource[:force] == :true
+      if resource[:force]
         Puppet.debug('Password change forced')
         :notset
       else

@@ -3,7 +3,8 @@ require 'spec/support/shared_examples_for_types'
 
 describe Puppet::Type.type(:netapp_e_network_interface) do
   before :each do
-    @netapp_e_network_interface = { :macaddr => '0123456789AB' }
+    @netapp_e_network_interface = { :macaddr => '0123456789AB',
+                                    :storagesystem => 'storagesystem' }
     described_class.stubs(:defaultprovider).returns providerclass
   end
 
@@ -31,6 +32,12 @@ describe Puppet::Type.type(:netapp_e_network_interface) do
      :remoteaccess, :speed].each do |prop|
       it "should have a #{prop} property" do
         described_class.attrtype(prop).should == :property
+      end
+    end
+    [:macaddr, :storagesystem].each do |param|
+      it "#{param} should be a required" do
+        resource.delete(param)
+        expect {described_class.new(resource)}.to raise_error Puppet::Error
       end
     end
   end
