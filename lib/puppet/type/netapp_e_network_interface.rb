@@ -4,6 +4,11 @@ Puppet::Type.newtype(:netapp_e_network_interface) do
 
   apply_to_device
 
+  validate do
+    raise Puppet::Error, 'You must specify a mac address of interface.' unless @parameters.include?(:macaddr)
+    raise Puppet::Error, 'You must specify a storage system.' unless @parameters.include?(:storagesystem)
+  end
+
   newparam(:macaddr, :namevar => true) do
     desc 'An ASCII string representation of the globally-unique 48-bit MAC address assigned to the Ethernet interface.'
     validate do |value|

@@ -5,7 +5,7 @@ Puppet::Type.type(:netapp_e_password).provide(:netapp_e_password, :parent => Pup
 
   def passwords_status
     response = transport.get_passwords_status(resource[:storagesystem])
-    if resource[:admin] == :true
+    if resource[:admin]
       if response['adminPasswordSet']
         Puppet.debug('Admin password is set')
         :set

@@ -5,6 +5,20 @@ Puppet::Type.newtype(:netapp_e_volume) do
   apply_to_device
   ensurable
 
+  validate do
+    raise Puppet::Error, 'You must specify a storage system.' unless @parameters.include?(:storagesystem)
+    raise Puppet::Error, 'You must specify a name of volume.' unless @parameters.include?(:name)
+    raise Puppet::Error, 'You must specify a storage pool name.' unless @parameters.include?(:storagepool)
+    raise Puppet::Error, 'You must specify a size unit.' unless @parameters.include?(:sizeunit)
+    raise Puppet::Error, 'You must specify a size.' unless @parameters.include?(:size)
+    if @original_parameters[:thin]
+      raise Puppet::Error, 'You must specify a maximum repository size.' unless @parameters.include?(:maxrepositorysize)
+      raise Puppet::Error, 'You must specify repository size.' unless @parameters.include?(:repositorysize)
+    else
+      raise Puppet::Error, 'You must specify segment size.' unless @parameters.include?(:segsize)
+    end
+  end
+
   newparam(:name, :namevar => true) do
     desc 'The user-label to assign to the new volume.'
   end
@@ -38,16 +52,13 @@ Puppet::Type.newtype(:netapp_e_volume) do
     desc 'The segment size of the volume'
   end
 
-  newparam(:dataassurance) do
+  newparam(:dataassurance, :boolean => true, :parent => Puppet::Parameter::Boolean) do
     desc 'If true data assurance enabled'
-    defaultto :false
-    newvalues(:true, :false)
   end
 
-  newparam(:thin) do
+  newparam(:thin, :boolean => true, :parent => Puppet::Parameter::Boolean) do
     desc 'If true thin volume will be created'
     defaultto :false
-    newvalues(:true, :false)
   end
 
   newparam(:repositorysize) do
@@ -66,21 +77,16 @@ Puppet::Type.newtype(:netapp_e_volume) do
     desc 'The repository utilization warning threshold (in percent).'
   end
 
-  newparam(:defaultmapping) do
+  newparam(:defaultmapping, :boolean => true, :parent => Puppet::Parameter::Boolean) do
     desc 'Create the default volume mapping.'
-    defaultto :false
-    newvalues(:true, :false)
   end
 
   newparam(:expansionpolicy) do
     desc 'Thin Volume expansion policy. If automatic, the thin volume will be expanded automatically when capacity is exceeded, if manual, the volume must be expanded manually.'
-    defaultto 'automatic'
     newvalues('unknown', 'manual', 'automatic', '__UNDEFINED')
   end
 
-  newparam(:cachereadahead) do
+  newparam(:cachereadahead, :boolean => true, :parent => Puppet::Parameter::Boolean) do
     desc 'If true automatic cache read-ahead enabled'
-    defaultto :false
-    newvalues(:true, :false)
   end
 end
