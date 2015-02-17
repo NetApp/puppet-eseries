@@ -49,9 +49,10 @@ describe Puppet::Type.type(:netapp_e_storage_pool).provider(:netapp_e_storage_po
     it 'exists' do
       expect(@transport).to receive(:get_storage_pools) { JSON.parse(File.read(my_fixture('storage_pool-list.json'))) }
       allow(described_class).to receive(:transport) { @transport }
+      current_provider = resource.provider
       resources = { 'name' => resource }
       described_class.prefetch(resources)
-      expect(resources['name']).not_to be_nil
+      expect(resources['name']).not_to be(current_provider)
     end
   end
 

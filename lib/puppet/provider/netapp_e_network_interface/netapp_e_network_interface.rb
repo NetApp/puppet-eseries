@@ -28,7 +28,7 @@ Puppet::Type.type(:netapp_e_network_interface).provide(:netapp_e_network_interfa
           :ipv6config  => net_int['ipv6AddressConfigMethod'],
           :ipv6routableaddr => net_int['ipv6AddressConfigMethod'],
           :remoteaccess => net_int['rloginEnabled'].to_s.to_sym,
-          :speed => net_int['speedSetting']
+          :speed => net_int['configuredSpeedSetting']
          )
     end
   rescue => detail
@@ -97,7 +97,7 @@ Puppet::Type.type(:netapp_e_network_interface).provide(:netapp_e_network_interfa
       request_body[:ipv4Enabled] = resource[:ipv4] if @property_flush[:ipv4]
       request_body[:ipv4Address] = resource[:ipv4address] if @property_flush[:ipv4address]
       request_body[:ipv4SubnetMask] = resource[:ipv4mask] if @property_flush[:ipv4mask]
-      request_body[:ipv4gateway] = resource[:ipv4gateway] if @property_flush[:ipv4gateway]
+      request_body[:ipv4GatewayAddress] = resource[:ipv4gateway] if @property_flush[:ipv4gateway]
       request_body[:ipv4AddressConfigMethod] = resource[:ipv4config] if @property_flush[:ipv4config]
       request_body[:ipv6Enabled] = resource[:ipv6] if @property_flush[:ipv6]
       request_body[:ipv6LocalAddress] = resource[:ipv6address] if @property_flush[:ipv6address]

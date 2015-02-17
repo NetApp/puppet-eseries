@@ -63,9 +63,10 @@ describe Puppet::Type.type(:netapp_e_storage_system).provider(:netapp_e_storage_
     it 'exists' do
       expect(@transport).to receive(:get_storage_systems) { JSON.parse(File.read(my_fixture('storage_system-list.json'))) }
       allow(described_class).to receive(:transport) { @transport }
+      current_provider = resource.provider
       resources = { 'name' => resource }
       described_class.prefetch(resources)
-      expect(resources['name']).not_to be_nil
+      expect(resources['name']).not_to be(current_provider)
     end
   end
 
@@ -99,7 +100,7 @@ describe Puppet::Type.type(:netapp_e_storage_system).provider(:netapp_e_storage_
       resource.provider.meta_tags = resource[:meta_tags]
     end
     it_behaves_like 'a method with error handling', :update_storage_system, :flush
-    it 'should be able to modify an existing role' do
+    it 'should be able to modify an existing resource' do
       # Need to have a resource present that we can modify
       resource.provider.set(:name => resource[:name])
       expect(@transport).to receive(:update_storage_system).with(resource[:name], :metaTags => resource[:meta_tags])
