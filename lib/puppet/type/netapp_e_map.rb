@@ -4,6 +4,14 @@ Puppet::Type.newtype(:netapp_e_map) do
 
   apply_to_device
 
+  validate do
+    raise Puppet::Error, 'You must specify a name for volume mapping.' unless @parameters.include?(:name)
+    raise Puppet::Error, 'You must specify a storage system name.' unless @parameters.include?(:storagesystem)
+    raise Puppet::Error, 'You must specify a source of mapping.' unless @parameters.include?(:source)
+    raise Puppet::Error, 'You must specify a target of mapping.' unless @parameters.include?(:target)
+    raise Puppet::Error, 'You must specify a lun number.' unless @parameters.include?(:lun)
+  end
+
   newparam(:name, :namevar => true) do
     desc 'The user-label to assign to the new volume.'
   end
@@ -21,7 +29,7 @@ Puppet::Type.newtype(:netapp_e_map) do
   end
 
   newparam(:target) do
-    desc 'The host group or a host for the volume mapping. If left null, the default host group will be used.'
+    desc 'The host group or a host for the volume mapping.'
   end
 
   newparam(:type) do

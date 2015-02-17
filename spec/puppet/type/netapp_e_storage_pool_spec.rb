@@ -3,7 +3,10 @@ require 'spec/support/shared_examples_for_types'
 
 describe Puppet::Type.type(:netapp_e_storage_pool) do
   before :each do
-    @netapp_e_storage_pool = { :name => 'netapp_e_storage_pool' }
+    @netapp_e_storage_pool = { :name => 'netapp_e_storage_pool',
+                               :storagesystem => 'storagesystem',
+                               :diskids => 'diskids',
+                               :raidlevel => :raidUnsupported }
     described_class.stubs(:defaultprovider).returns providerclass
   end
 
@@ -32,6 +35,12 @@ describe Puppet::Type.type(:netapp_e_storage_pool) do
         described_class.attrtype(prop).should == :property
       end
     end
+    [:storagesystem, :name, :diskids, :raidlevel].each do |param|
+      it "#{param} should be a required" do
+        resource.delete(param)
+        expect {described_class.new(resource)}.to raise_error Puppet::Error
+      end
+    end
   end
 
   describe 'when validating values' do
@@ -49,7 +58,7 @@ describe Puppet::Type.type(:netapp_e_storage_pool) do
       it_behaves_like 'a string param/property', :id, true
     end
     context 'for erasedrives' do
-      it_behaves_like 'a boolish param/property', :erasedrives, :false
+      it_behaves_like 'a boolish param/property', :erasedrives, false
     end
     context 'for raidlevel' do
       it_behaves_like 'a enum param/property', :raidlevel, %w(raidUnsupported raidAll raid0 raid1 raid3 raid5 raid6 raidDiskPool __UNDEFINED)

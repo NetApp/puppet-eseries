@@ -3,7 +3,12 @@ require 'spec/support/shared_examples_for_types'
 
 describe Puppet::Type.type(:netapp_e_volume) do
   before :each do
-    @volume = { :name => 'volume' }
+    @volume = { :name => 'volume',
+                :thin => false,
+                :storagesystem => 'storagesystem',
+                :storagepool => 'storagepool',
+                :sizeunit => :b,
+                :size => '10' }
     described_class.stubs(:defaultprovider).returns providerclass
   end
 
@@ -30,6 +35,36 @@ describe Puppet::Type.type(:netapp_e_volume) do
     [:id, :poolid, :ensure].each do |prop|
       it "should have a #{prop} property" do
         described_class.attrtype(prop).should == :property
+      end
+    end
+
+    context 'for normal volume' do
+      it 'should be able to create rosurce' do
+        expect { described_class.new(resource) }.not_to raise_error
+      end
+      [:storagesystem, :name, :storagepool, :sizeunit, :size].each do |param|
+        it "#{param} should be a required" do
+          resource.delete(param)
+          expect { described_class.new(resource) }.to raise_error Puppet::Error
+        end
+      end
+    end
+    context 'for thin volume' do
+      before :each do
+        resource.merge!(:name => 'thin-volume',
+                        :thin => true,
+                        :maxrepositorysize => '1',
+                        :repositorysize => '2',
+                        :segsize => '3')
+      end
+      it 'should be able to create rosurce' do
+        expect { described_class.new(resource) }.not_to raise_error
+      end
+      [:maxrepositorysize, :repositorysize, :segsize].each do |param|
+        it "#{param} should be a required" do
+          resource.delete(param)
+          expect { described_class.new(resource) }.to raise_error Puppet::Error
+        end
       end
     end
   end
@@ -60,10 +95,10 @@ describe Puppet::Type.type(:netapp_e_volume) do
       it_behaves_like 'a string param/property', :segsize, true
     end
     context 'for dataassurance' do
-      it_behaves_like 'a boolish param/property', :dataassurance, :false
+      it_behaves_like 'a boolish param/property', :dataassurance, false
     end
     context 'for thin' do
-      it_behaves_like 'a boolish param/property', :thin, :false
+      it_behaves_like 'a boolish param/property', :thin, false
     end
     context 'for repositorysize' do
       it_behaves_like 'a string param/property', :repositorysize, true
@@ -78,13 +113,13 @@ describe Puppet::Type.type(:netapp_e_volume) do
       it_behaves_like 'a string param/property', :growthalertthreshold, true
     end
     context 'for defaultmapping' do
-      it_behaves_like 'a boolish param/property', :defaultmapping, :false
+      it_behaves_like 'a boolish param/property', :defaultmapping, false
     end
     context 'for expansionpolicy' do
       it_behaves_like 'a enum param/property', :expansionpolicy, %w(unknown manual automatic __UNDEFINED), 'automatic'
     end
     context 'for cachereadahead' do
-      it_behaves_like 'a boolish param/property', :cachereadahead, :false
+      it_behaves_like 'a boolish param/property', :cachereadahead, false
     end
   end
 end

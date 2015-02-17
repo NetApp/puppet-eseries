@@ -35,21 +35,21 @@ Puppet::Type.type(:netapp_e_volume).provide(:netapp_e_volume, :parent => Puppet:
 
   def create
     poolid = transport.storage_pool_id(resource[:storagesystem], resource[:storagepool])
-    if resource[:thin] == :true
+    if resource[:thin]
       request_body = {
         :poolId => poolid,
         :name => resource[:name],
         :sizeUnit => resource[:sizeunit],
         :virtualSize => resource[:size],
         :maximumRepositorySize => resource[:maxrepositorysize],
-        :expansionPolicy => resource[:expansionpolicy],
-        :createDefaultMapping => resource[:defaultmapping],
-        :cacheReadAhead => resource[:cachereadahead],
         :repositorySize => resource[:repositorysize],
-        :dataAssuranceEnabled => resource[:dataassurance]
       }
       request_body[:growthAlertThreshold] = resource[:growthalertthreshold] if resource[:growthalertthreshold]
       request_body[:owningControllerId] = resource[:owningcontrollerid] if resource[:owningcontrollerid]
+      request_body[:expansionPolicy] = resource[:expansionpolicy] if resource[:expansionpolicy]
+      request_body[:createDefaultMapping] = resource[:defaultmapping] unless resource[:defaultmapping].nil?
+      request_body[:cacheReadAhead] = resource[:cachereadahead] unless resource[:cachereadahead].nil?
+      request_body[:dataAssuranceEnabled] = resource[:dataassurance] unless resource[:dataassurance].nil?
 
       transport.create_thin_volume(resource[:storagesystem], request_body)
       Puppet.debug("Puppet::Provider::Netapp_e_volume: thinvolume #{@resource[:name]} created successfully. \n")
@@ -60,8 +60,8 @@ Puppet::Type.type(:netapp_e_volume).provide(:netapp_e_volume, :parent => Puppet:
         :sizeUnit => resource[:sizeunit],
         :size => resource[:size],
         :segSize => resource[:segsize],
-        :dataAssuranceEnabled => resource[:dataassurance]
       }
+      request_body[:dataAssuranceEnabled] = resource[:dataassurance] unless resource[:dataassurance].nil?
       transport.create_volume(resource[:storagesystem], request_body)
       Puppet.debug("Puppet::Provider::Netapp_e_volume: volume #{@resource[:name]} created successfully. \n")
     end
@@ -70,7 +70,7 @@ Puppet::Type.type(:netapp_e_volume).provide(:netapp_e_volume, :parent => Puppet:
   end
 
   def destroy
-    if resource[:thin] == :true
+    if resource[:thin]
       Puppet.debug("Puppet::Provider::Netapp_e_volume: destroying thin-volume #{@resource[:name]}. \n")
       transport.delete_thin_volume(resource[:storagesystem], @property_hash[:id])
     else

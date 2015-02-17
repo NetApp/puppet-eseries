@@ -3,7 +3,8 @@ require 'spec/support/shared_examples_for_types'
 
 describe Puppet::Type.type(:netapp_e_storage_system) do
   before :each do
-    @storage_system = { :name => 'storage_system' }
+    @storage_system = { :name => 'storage_system',
+                        :controllers => '10.250.117.116'}
     described_class.stubs(:defaultprovider).returns providerclass
   end
 
@@ -29,6 +30,12 @@ describe Puppet::Type.type(:netapp_e_storage_system) do
     [:ensure, :meta_tags].each do |prop|
       it "should have a #{prop} property" do
         described_class.attrtype(prop).should == :property
+      end
+    end
+    [:name, :controllers].each do |param|
+      it "#{param} should be a required" do
+        resource.delete(param)
+        expect {described_class.new(resource)}.to raise_error Puppet::Error
       end
     end
   end
