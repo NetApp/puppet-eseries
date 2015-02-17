@@ -99,6 +99,12 @@ describe Puppet::Type.type(:netapp_e_volume) do
       it_behaves_like 'a boolish param/property', :dataassurance, false
     end
     context 'for thin' do
+      before :each do
+        resource.merge!(:name => 'thin-volume',
+                        :thin => true,
+                        :maxrepositorysize => '1',
+                        :repositorysize => '2')
+      end
       it_behaves_like 'a boolish param/property', :thin, false
     end
     context 'for repositorysize' do
