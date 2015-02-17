@@ -5,6 +5,13 @@ Puppet::Type.newtype(:netapp_e_host) do
   apply_to_device
   ensurable
 
+  validate do
+    raise Puppet::Error, 'You must specify a storage system.' unless @parameters.include?(:storagesystem)
+    raise Puppet::Error, 'You must specify a name of host.' unless @parameters.include?(:name)
+    raise Puppet::Error, 'You must specify a group name' unless @parameters.include?(:groupid)
+    raise Puppet::Error, 'You must specify a typeindex of host' unless @parameters.include?(:typeindex)
+  end
+
   newparam(:name, :namevar => true) do
     desc 'The user-label to assign to the new host.'
   end

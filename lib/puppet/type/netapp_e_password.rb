@@ -4,6 +4,13 @@ Puppet::Type.newtype(:netapp_e_password) do
 
   apply_to_device
 
+  validate do
+    raise Puppet::Error, 'You must specify a storage system id.' unless @parameters.include?(:storagesystem)
+    raise Puppet::Error, 'You must specify a current admin password.' unless @parameters.include?(:current)
+    raise Puppet::Error, 'You must specify a new password.' unless @parameters.include?(:new)
+    raise Puppet::Error, 'You must specify a type of password.' unless @parameters.include?(:admin)
+  end
+
   newparam(:storagesystem, :namevar => true) do
     desc 'Storage system id'
   end
@@ -36,14 +43,12 @@ Puppet::Type.newtype(:netapp_e_password) do
     end
   end
 
-  newparam(:admin) do
+  newparam(:admin, :boolean => true, :parent => Puppet::Parameter::Boolean) do
     desc 'If this is true, this will set the admin password, if false, it sets the RO password'
-    newvalues(:true, :false)
   end
 
-  newparam(:force) do
+  newparam(:force, :boolean => true, :parent => Puppet::Parameter::Boolean) do
     desc 'If true it will always try change password, even if already set. We can not check if passwords match'
-    newvalues(:true, :false)
     defaultto :false
   end
 end

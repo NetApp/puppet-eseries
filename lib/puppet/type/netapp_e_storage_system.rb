@@ -5,6 +5,11 @@ Puppet::Type.newtype(:netapp_e_storage_system) do
   apply_to_device
   ensurable
 
+  validate do
+    raise Puppet::Error, 'You must specify a storage system name.' unless @parameters.include?(:name)
+    raise Puppet::Error, 'You must specify a storage system controllers.' unless @parameters.include?(:controllers)
+  end
+
   newparam(:name, :namevar => true) do
     desc 'Storage System ID'
     validate do |value|
