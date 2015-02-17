@@ -96,12 +96,11 @@ describe Puppet::Type.type(:netapp_e_volume) do
       it_behaves_like 'a string param/property', :segsize, true
     end
     context 'for dataassurance' do
-      it_behaves_like 'a boolish param/property', :dataassurance, false
+      it_behaves_like 'a boolish param/property', :dataassurance
     end
     context 'for thin' do
       before :each do
         resource.merge!(:name => 'thin-volume',
-                        :thin => true,
                         :maxrepositorysize => '1',
                         :repositorysize => '2')
       end
@@ -120,13 +119,13 @@ describe Puppet::Type.type(:netapp_e_volume) do
       it_behaves_like 'a string param/property', :growthalertthreshold, true
     end
     context 'for defaultmapping' do
-      it_behaves_like 'a boolish param/property', :defaultmapping, false
+      it_behaves_like 'a boolish param/property', :defaultmapping
     end
     context 'for expansionpolicy' do
-      it_behaves_like 'a enum param/property', :expansionpolicy, %w(unknown manual automatic __UNDEFINED), 'automatic'
+      it_behaves_like 'a enum param/property', :expansionpolicy, %w(unknown manual automatic __UNDEFINED)
     end
     context 'for cachereadahead' do
-      it_behaves_like 'a boolish param/property', :cachereadahead, false
+      it_behaves_like 'a boolish param/property', :cachereadahead
     end
   end
 end
