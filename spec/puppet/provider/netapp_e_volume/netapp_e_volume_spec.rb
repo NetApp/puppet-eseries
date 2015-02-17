@@ -80,9 +80,10 @@ describe Puppet::Type.type(:netapp_e_volume).provider(:netapp_e_volume) do
     it 'exists' do
       expect(@transport).to receive(:get_volumes) { JSON.parse(File.read(my_fixture('volumes-list.json'))) }
       allow(described_class).to receive(:transport) { @transport }
+      current_provider = resource.provider
       resources = { 'volume-name' => resource }
       described_class.prefetch(resources)
-      expect(resources['name']).to be_nil
+      expect(resources['volume-name']).not_to be(current_provider)
     end
   end
 
