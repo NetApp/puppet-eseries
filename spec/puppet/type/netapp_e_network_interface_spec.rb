@@ -28,8 +28,7 @@ describe Puppet::Type.type(:netapp_e_network_interface) do
     end
 
     [:id, :controller, :interfacename, :ipv4, :ipv4address, :ipv4mask, :ipv4gateway,
-     :ipv4config, :ipv6, :ipv6address, :ipv6config, :ipv6gateway, :ipv6staticroutableaddress,
-     :remoteaccess, :speed].each do |prop|
+     :ipv4config, :ipv6, :ipv6config, :remoteaccess, :speed].each do |prop|
       it "should have a #{prop} property" do
         described_class.attrtype(prop).should == :property
       end
@@ -80,10 +79,10 @@ describe Puppet::Type.type(:netapp_e_network_interface) do
       it_behaves_like 'a enum param/property', :ipv6config, %w(configStatic configStateless __UNDEFINED)
     end
     context 'for ipv6gateway' do
-      it_behaves_like 'a string param/property', :ipv6gateway, true
+      it_behaves_like 'a IPv6 param/property', :ipv6gateway
     end
-    context 'for ipv6staticroutableaddress' do
-      it_behaves_like 'a string param/property', :ipv6staticroutableaddress, true
+    context 'for ipv6routableaddr' do
+      it_behaves_like 'a IPv6 param/property', :ipv6routableaddr
     end
     context 'for remoteaccess' do
       it_behaves_like 'a boolish param/property', :remoteaccess

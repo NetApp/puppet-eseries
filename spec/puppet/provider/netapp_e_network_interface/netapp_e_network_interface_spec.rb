@@ -51,9 +51,7 @@ describe Puppet::Type.type(:netapp_e_network_interface).provider(:netapp_e_netwo
           :ipv4gateway => prov.get(:ipv4gateway),
           :ipv4config => prov.get(:ipv4config),
           :ipv6 => prov.get(:ipv6),
-          :ipv6address => prov.get(:ipv6address),
           :ipv6config => prov.get(:ipv6config),
-          :ipv6routableaddr => prov.get(:ipv6routableaddr),
           :remoteaccess => prov.get(:remoteaccess),
           :speed => prov.get(:speed) }
       end.should == [{ :id => resource[:id],
@@ -67,12 +65,7 @@ describe Puppet::Type.type(:netapp_e_network_interface).provider(:netapp_e_netwo
                        :ipv4gateway => resource[:ipv4gateway],
                        :ipv4config => resource[:ipv4config].to_s,
                        :ipv6 => resource[:ipv6],
-                       :ipv6address => { 'address' => '',
-                                         'addressState' => { 'addressType' => 'IpV6AddressType',
-                                                             'interfaceAddressState' => 'IpConfigState',
-                                                             'routerAddressState' => 'IpV6RouterAddressState' } },
                        :ipv6config => resource[:ipv6config].to_s,
-                       :ipv6routableaddr => 'ipv6routableaddr',
                        :remoteaccess => resource[:remoteaccess],
                        :speed => resource[:speed].to_s
                      }]
@@ -121,18 +114,9 @@ describe Puppet::Type.type(:netapp_e_network_interface).provider(:netapp_e_netwo
       include_examples 'a changable param/property', :ipv4gateway, :ipv4GatewayAddress
       include_examples 'a changable param/property', :ipv4config, :ipv4AddressConfigMethod
       include_examples 'a changable param/property', :ipv6, :ipv6Enabled
-      include_examples 'a changable param/property', :ipv6address, :ipv6LocalAddress
       include_examples 'a changable param/property', :ipv6config, :ipv6AddressConfigMethod
-      include_examples 'a changable param/property', :ipv6gateway, :ipv6GatewayAddress
       include_examples 'a changable param/property', :speed, :speedSetting
       include_examples 'a changable param/property', :remoteaccess, :enableRemoteAccess
-      it 'if ipv6routableaddr changes' do
-        resource.provider.ipv6routableaddr = 'ipv6routableaddr'
-        @expected_body[:ipv6StaticRoutableAddress] = 'ipv6routableaddr'
-        expect(@transport).to receive(:update_ethernet_interface).with(resource[:storagesystem], @expected_body)
-        allow(resource.provider).to receive(:transport) { @transport }
-        resource.provider.flush
-      end
     end
   end
 end

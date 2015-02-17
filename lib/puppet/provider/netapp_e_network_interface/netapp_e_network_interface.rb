@@ -18,16 +18,14 @@ Puppet::Type.type(:netapp_e_network_interface).provide(:netapp_e_network_interfa
           :controller => net_int['controllerRef'],
           :storagesystem => net_int['storagesystem'],
           :interfacename => net_int['interfaceName'],
-          :ipv4 => net_int['ipv4Enabled'].to_s.to_sym,
+          :ipv4 => net_int['ipv4Enabled'],
           :ipv4address => net_int['ipv4Address'],
           :ipv4mask => net_int['ipv4SubnetMask'],
           :ipv4gateway => net_int['ipv4GatewayAddress'],
           :ipv4config => net_int['ipv4AddressConfigMethod'],
-          :ipv6 => net_int['ipv6Enabled'].to_s.to_sym,
-          :ipv6address => net_int['ipv6LocalAddress'],
+          :ipv6 => net_int['ipv6Enabled'],
           :ipv6config  => net_int['ipv6AddressConfigMethod'],
-          :ipv6routableaddr => net_int['ipv6AddressConfigMethod'],
-          :remoteaccess => net_int['rloginEnabled'].to_s.to_sym,
+          :remoteaccess => net_int['rloginEnabled'],
           :speed => net_int['configuredSpeedSetting']
          )
     end
@@ -69,16 +67,8 @@ Puppet::Type.type(:netapp_e_network_interface).provide(:netapp_e_network_interfa
     @property_flush[:ipv6] = value
   end
 
-  def ipv6address=(value)
-    @property_flush[:ipv6address] = value
-  end
-
   def ipv6config=(value)
     @property_flush[:ipv6config] = value
-  end
-
-  def ipv6routableaddr=(value)
-    @property_flush[:ipv6routableaddr] = value
   end
 
   def remoteaccess=(value)
@@ -94,18 +84,15 @@ Puppet::Type.type(:netapp_e_network_interface).provide(:netapp_e_network_interfa
       request_body = {}
       request_body[:controllerRef] = @property_hash[:controller]
       request_body[:interfaceRef] = @property_hash[:id]
-      request_body[:ipv4Enabled] = resource[:ipv4] if @property_flush[:ipv4]
+      request_body[:ipv4Enabled] = resource[:ipv4] unless @property_flush[:ipv4].nil?
       request_body[:ipv4Address] = resource[:ipv4address] if @property_flush[:ipv4address]
       request_body[:ipv4SubnetMask] = resource[:ipv4mask] if @property_flush[:ipv4mask]
       request_body[:ipv4GatewayAddress] = resource[:ipv4gateway] if @property_flush[:ipv4gateway]
       request_body[:ipv4AddressConfigMethod] = resource[:ipv4config] if @property_flush[:ipv4config]
-      request_body[:ipv6Enabled] = resource[:ipv6] if @property_flush[:ipv6]
-      request_body[:ipv6LocalAddress] = resource[:ipv6address] if @property_flush[:ipv6address]
+      request_body[:ipv6Enabled] = resource[:ipv6] unless @property_flush[:ipv6].nil?
       request_body[:ipv6AddressConfigMethod] = resource[:ipv6config] if @property_flush[:ipv6config]
-      request_body[:ipv6GatewayAddress] = resource[:ipv6gateway] if @property_flush[:ipv6gateway]
-      request_body[:ipv6StaticRoutableAddress] = resource[:ipv6routableaddr] if @property_flush[:ipv6routableaddr]
       request_body[:speedSetting] = resource[:speed] if @property_flush[:speed]
-      request_body[:enableRemoteAccess] = resource[:remoteaccess] if @property_flush[:remoteaccess]
+      request_body[:enableRemoteAccess] = resource[:remoteaccess] unless @property_flush[:remoteaccess].nil?
       transport.update_ethernet_interface(resource[:storagesystem], request_body)
     end
   rescue => detail
