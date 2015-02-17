@@ -9,6 +9,20 @@ Puppet::Type.newtype(:netapp_e_network_interface) do
     raise Puppet::Error, 'You must specify a storage system.' unless @parameters.include?(:storagesystem)
   end
 
+  def self.valid_ipv4?(addr)
+    if /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/ =~ addr
+      return $~.captures.all? {|i| i = i.to_i; i >= 0 and i <= 255 }
+    end
+    return false
+  end
+
+  def self.valid_ipv6?(addr)
+    # http://forums.dartware.com/viewtopic.php?t=452
+    # ...and, yes, it is this hard. Doing it programatically is harder.
+    return true if addr =~ /^\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(%.+)?\s*$/
+    false
+  end
+
   newparam(:macaddr, :namevar => true) do
     desc 'An ASCII string representation of the globally-unique 48-bit MAC address assigned to the Ethernet interface.'
     validate do |value|
@@ -32,48 +46,31 @@ Puppet::Type.newtype(:netapp_e_network_interface) do
     desc 'Name of Ethernet port'
   end
 
-  newproperty(:ipv4) do
+  newproperty(:ipv4, :boolean => true, :parent => Puppet::Parameter::Boolean) do
     desc 'True if ipv4 is to be enabled for this interface; otherwise false.'
-    newvalues(:true, :false)
   end
 
   newproperty(:ipv4address) do
     desc 'The ipv4 address for the interface. Required for static configuration.'
 
-    def valid_ipv4?(addr)
-      if /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/ =~ addr
-        return $~.captures.all? {|i| i = i.to_i; i >= 0 and i <= 255 }
-      end
-      return false
-    end
     validate do |value|
-      fail("#{value} is not a valid IPv4 address") unless valid_ipv4?(value)
+      fail("#{value} is not a valid IPv4 address") unless Puppet::Type::Netapp_e_network_interface.valid_ipv4?(value)
     end
   end
 
   newproperty(:ipv4mask) do
     desc 'The ipv4 subnet mask for the interface. Required for static configuration.'
-    def valid_ipv4?(addr)
-      if /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/ =~ addr
-        return $~.captures.all? {|i| i = i.to_i; i >= 0 and i <= 255 }
-      end
-      false
-    end
+
     validate do |value|
-      fail("#{value} is not a valid IPv4 address") unless valid_ipv4?(value)
+      fail("#{value} is not a valid IPv4 address") unless Puppet::Type::Netapp_e_network_interface.valid_ipv4?(value)
     end
   end
 
   newproperty(:ipv4gateway) do
     desc 'Manually specify the address of the gateway.'
-    def valid_ipv4?(addr)
-      if /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/ =~ addr
-        return $~.captures.all? {|i| i = i.to_i; i >= 0 and i <= 255 }
-      end
-      false
-    end
+
     validate do |value|
-      fail("#{value} is not a valid IPv4 address") unless valid_ipv4?(value)
+      fail("#{value} is not a valid IPv4 address") unless Puppet::Type::Netapp_e_network_interface.valid_ipv4?(value)
     end
   end
 
@@ -82,23 +79,15 @@ Puppet::Type.newtype(:netapp_e_network_interface) do
     newvalues('configDhcp', 'configStatic', '__UNDEFINED')
   end
 
-  newproperty(:ipv6) do
+  newproperty(:ipv6, :boolean => true, :parent => Puppet::Parameter::Boolean) do
     desc 'True if ipv6 is to be enabled for this interface; otherwise false.'
-    newvalues(:true, :false)
   end
 
-  newproperty(:ipv6address) do
+  newparam(:ipv6address) do
     desc 'The ipv6 local address for the interface.'
 
-    def valid_ipv6?(addr)
-      # http://forums.dartware.com/viewtopic.php?t=452
-      # ...and, yes, it is this hard. Doing it programatically is harder.
-      return true if addr =~ /^\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(%.+)?\s*$/
-      false
-    end
-
     validate do |value|
-      fail("#{value} is not a valid IPv6 address") unless valid_ipv6?(value)
+      fail("#{value} is not a valid IPv6 address") unless Puppet::Type::Netapp_e_network_interface.valid_ipv6?(value)
     end
   end
 
@@ -107,17 +96,23 @@ Puppet::Type.newtype(:netapp_e_network_interface) do
     newvalues('configStatic', 'configStateless', '__UNDEFINED')
   end
 
-  newproperty(:ipv6gateway) do
+  newparam(:ipv6gateway) do
     desc 'Manually specify the address of the gateway.'
+
+    validate do |value|
+      fail("#{value} is not a valid IPv6 address") unless Puppet::Type::Netapp_e_network_interface.valid_ipv6?(value)
+    end
   end
 
-  newproperty(:ipv6staticroutableaddress) do
+  newparam(:ipv6routableaddr) do
+    validate do |value|
+      fail("#{value} is not a valid IPv6 address") unless Puppet::Type::Netapp_e_network_interface.valid_ipv6?(value)
+    end
   end
 
-  newproperty(:remoteaccess) do
+  newproperty(:remoteaccess, :boolean => true, :parent => Puppet::Parameter::Boolean) do
     desc 'If set to true, the controller is enabled for establishment of a remote access session.
         Depending on the controller platform, the method for remote access could be rlogin or telnet.'
-    newvalues(:true, :false)
   end
 
   newproperty(:speed) do

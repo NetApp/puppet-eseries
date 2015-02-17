@@ -58,7 +58,7 @@ Puppet::Type.newtype(:netapp_e_volume) do
 
   newparam(:thin, :boolean => true, :parent => Puppet::Parameter::Boolean) do
     desc 'If true thin volume will be created'
-    defaultto :false
+    defaultto false
   end
 
   newparam(:repositorysize) do
