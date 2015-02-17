@@ -8,7 +8,8 @@ describe Puppet::Type.type(:netapp_e_volume) do
                 :storagesystem => 'storagesystem',
                 :storagepool => 'storagepool',
                 :sizeunit => :b,
-                :size => '10' }
+                :size => '10',
+                :segsize => '3'}
     described_class.stubs(:defaultprovider).returns providerclass
   end
 
@@ -42,7 +43,7 @@ describe Puppet::Type.type(:netapp_e_volume) do
       it 'should be able to create rosurce' do
         expect { described_class.new(resource) }.not_to raise_error
       end
-      [:storagesystem, :name, :storagepool, :sizeunit, :size].each do |param|
+      [:storagesystem, :name, :storagepool, :sizeunit, :size, :segsize].each do |param|
         it "#{param} should be a required" do
           resource.delete(param)
           expect { described_class.new(resource) }.to raise_error Puppet::Error
@@ -51,16 +52,16 @@ describe Puppet::Type.type(:netapp_e_volume) do
     end
     context 'for thin volume' do
       before :each do
+        resource.delete(:segsize)
         resource.merge!(:name => 'thin-volume',
                         :thin => true,
                         :maxrepositorysize => '1',
-                        :repositorysize => '2',
-                        :segsize => '3')
+                        :repositorysize => '2')
       end
       it 'should be able to create rosurce' do
         expect { described_class.new(resource) }.not_to raise_error
       end
-      [:maxrepositorysize, :repositorysize, :segsize].each do |param|
+      [:maxrepositorysize, :repositorysize].each do |param|
         it "#{param} should be a required" do
           resource.delete(param)
           expect { described_class.new(resource) }.to raise_error Puppet::Error
