@@ -3,7 +3,12 @@ require 'spec/support/shared_examples_for_types'
 
 describe Puppet::Type.type(:netapp_e_password) do
   before :each do
-    @netapp_e_password = { :storagesystem => 'netapp_e_password' }
+    @netapp_e_password = {
+        :storagesystem => 'netapp_e_password',
+        :current => 'current',
+        :new => 'new',
+        :admin => :true
+    }
     described_class.stubs(:defaultprovider).returns providerclass
   end
 
@@ -30,6 +35,12 @@ describe Puppet::Type.type(:netapp_e_password) do
         described_class.attrtype(prop).should == :property
       end
     end
+    [:storagesystem, :current, :new, :admin].each do |param|
+      it "#{param} should be a required" do
+        resource.delete(param)
+        expect {described_class.new(resource)}.to raise_error Puppet::Error
+      end
+    end
   end
 
   describe 'when validating values' do
@@ -46,7 +57,7 @@ describe Puppet::Type.type(:netapp_e_password) do
       it_behaves_like 'a boolish param/property', :admin
     end
     context 'for force' do
-      it_behaves_like 'a boolish param/property', :force, :false
+      it_behaves_like 'a boolish param/property', :force, false
     end
     context 'for ensure' do
       it 'should set password when sync' do

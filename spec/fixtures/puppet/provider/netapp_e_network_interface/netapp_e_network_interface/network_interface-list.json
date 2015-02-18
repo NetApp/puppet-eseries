@@ -1,0 +1,74 @@
+[
+  {
+    "storagesystem": "storagesystem",
+    "ipv4GatewayAddress": "10.250.117.101",
+    "controllerRef": "controller",
+    "controllerSlot": 0,
+    "id": "",
+    "ip": 0,
+    "channel": 0,
+    "alias": "",
+    "gatewayIp": 0,
+    "subnetMask": 0,
+    "ipv6AddressConfigMethod": "configStateless",
+    "ipv4AddressConfigMethod": "configDhcp",
+    "interfaceName": "interfacename",
+    "linkStatus": "LinkStatus",
+    "ipv4Enabled": true,
+    "ipv6Enabled": true,
+    "speed": 0,
+    "fullDuplex": false,
+    "macAddr": "0123456789AB",
+    "bootpUsed": false,
+    "currentSpeed": "InterfaceSpeed",
+    "ipv4SubnetMask": "255.255.255.0",
+    "physicalLocation": {
+      "trayRef": "",
+      "slot": 0,
+      "locationParent": {
+        "refType": "ObjectReferenceType",
+        "controllerRef": "",
+        "symbolRef": "",
+        "typedReference": {
+          "componentType": "ComponentType",
+          "symbolRef": ""
+        }
+      },
+      "locationPosition": 0
+    },
+    "ipv6PortRoutableAddresses": [
+      {
+        "address": "",
+        "addressState": {
+          "addressType": "IpV6AddressType",
+          "interfaceAddressState": "IpConfigState",
+          "routerAddressState": "IpV6RouterAddressState"
+        }
+      }
+    ],
+    "rloginEnabled": true,
+    "setupError": false,
+    "interfaceRef": "id",
+    "ipv4Address": "10.250.117.116",
+    "ipv6LocalAddress": {
+      "address": "",
+      "addressState": {
+        "addressType": "IpV6AddressType",
+        "interfaceAddressState": "IpConfigState",
+        "routerAddressState": "IpV6RouterAddressState"
+      }
+    },
+    "ipv6PortStaticRoutableAddress": {
+      "address": "",
+      "addressState": {
+        "addressType": "IpV6AddressType",
+        "interfaceAddressState": "IpConfigState",
+        "routerAddressState": "IpV6RouterAddressState"
+      }
+    },
+    "supportedSpeedSettings": [
+      "EthernetSpeedSetting"
+    ],
+    "configuredSpeedSetting": "speedAutoNegotiated"
+  }
+]

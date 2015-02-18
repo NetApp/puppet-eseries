@@ -15,7 +15,7 @@ describe Puppet::Provider::Netapp_e do
   end
 
   context 'transport' do
-    context 'and :url fact isnot  set' do
+    context 'and :url fact is not  set' do
       it 'should return current device transport' do
         expect(Puppet::Util::NetworkDevice).to receive(:current) { @device }
         expect(@netapp_e.transport).to be(@transport)
