@@ -10,7 +10,12 @@ from netapp_helper_class import *
 class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
 # TODO make switch to custom manifest authomatic (by new_site_pp -> self.new_site_pp)?
-# TODO d={} -> d={a:1,b:2, so on}
+# TODO Review text of debug-messages
+# TODO Make all creation tests create two items at once!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# TODO Tests with long name
+# TODO Verify waternarks
+# TODO pool_before of pool_list_before? Get it in accordance!!!
+# TODO in helpers - get_system_state(system_id)= {'pools': pools, etc}
 
 ##################################### HERE COME REAL TESTING!!! ################################################
 
@@ -137,16 +142,17 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         self.log.debug("Current systems (before test): {systems}".format(systems=stage_on_start))
 
         # Constructing  custom site.pp and switching on it
-        d1 = {}
         rand_hash = hex(random.getrandbits(24))[2:-1]
-        d1['system_id'] = 'BANANA_'+rand_hash
-        d1['system_ip1'] = '8.8.8.8'
-        d1['system_ip2'] = '8.8.4.4'
-        d1['system_pass'] = 'banana'
-        d1['ensure'] = 'present'
+        d1 = dict(system_id='BANANA_'+rand_hash,
+                  system_ip1='8.8.8.8',
+                  system_ip2='8.8.4.4',
+                  system_pass='banana',
+                  ensure='present',
+                  signature='WATERMARK_test_storage_system_negative_BANANA_{0}'.format(rand_hash),
+                  )
         self.log.debug("Random hash for watermark: {0}".format(rand_hash))
-        d1['signature'] = 'WATERMARK_test_storage_system_negative_BANANA_{0}'.format(rand_hash)
-        d2 = {}
+
+        d2 = dict()
         d2['system_id'] = 'BANANA_'+rand_hash
         d2['system_ip1'] = '10.10.10.1'
         d2['system_ip2'] = '10.20.20.2'
@@ -664,9 +670,6 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
 #####################################################################################################################
 
-    # TODO pool expansion/reducion, raid-migration ?
-
-#####################################################################################################################
     @unittest2.skip('')
     def test_netapp_simple_volume_create_delete(self):
 
@@ -716,6 +719,8 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
                                                  self.manifest_storage_pool_section.format(**p) +
                                                  self.manifest_storage_volume_section.format(**v))
+
+        # TODO Dependencies!!!!
         self.switch_to_custom_manifest(new_site_pp)
 
         # Run 'puppet device' by subprocess
@@ -748,10 +753,10 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
 #####################################################################################################################
 
-    #@unittest2.skip('')
+    @unittest2.skip('')
     def test_netapp_thin_volume_create_delete(self):
         """
-        Test of creation and deletion simple volume
+        Test of creation and deleting simple volume
 
         1. Create pool
         2. Create volume
@@ -759,8 +764,9 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         4. Delete pool
         """
 
+        # Preparation and cleaning up of storage
         self.restore_first_system_by_REST()
-        self.remove_BANANA_objects(self.first_system_id)
+        self.remove_BANANA_objects_by_REST(self.first_system_id)
 
         # Saving starting stage
         stage_on_start = self.get_system_list()
@@ -770,8 +776,6 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         self.log.debug("Current systems (before test): {systems}".format(systems=stage_on_start))
         self.log.debug("(before manifests) List of pools: {0}".format(pool_list_before))
         self.log.debug("(before manifests) List of thin_volumes: {0}".format(volume_list_before))
-
-
 
         # Select free disks
         free_disks = self.get_free_disk(self.first_system_id, number=12)
@@ -822,7 +826,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         s['signature'] = 'WATERMARK_test_netapp_thin_volume_delete_{0}'.format(rand_hash)
         new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
                                                  self.manifest_storage_pool_section.format(**p) +
-                                                 self.manifest_storage_volume_section.format(**v)+
+                                                 self.manifest_storage_volume_section.format(**v) +
                                                  r'Netapp_e_volume <| |> -> Netapp_e_storage_pool <| |>')
 
         new_site_pp = self.remove_line_from_multiline_regexp(new_site_pp, 'require')
@@ -830,8 +834,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         self.switch_to_custom_manifest(new_site_pp)
 
         # Run 'puppet device' by subprocess
-        self.run_puppet_device(verbose=True)
-
+        self.run_puppet_device()
 
         pool_list_after_delete = [j['label'] for j in generic_get('pools', array_id=self.first_system_id)]
         volume_list_after_delete = [j['name'] for j in generic_get('thin_volumes', array_id=self.first_system_id)]
@@ -841,9 +844,591 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         assert v['volume_id'] in volume_list_after_create and v['volume_id'] not in volume_list_after_delete
 
 #####################################################################################################################
+
     @unittest2.skip('')
     def test_netapp_volume_copy_create_delete(self):
+        """
+        Test of volume copy
+
+        1. Create pool and two disks
+        2. Create a new volume copy pair
+        3. Get the list of volume copy pairs
+        4. Start/Stop a copy pair operation
+        5. Delete copy pair
+        """
+
+        # Preparation and cleaning up of storage
+        self.restore_first_system_by_REST()
+        self.remove_BANANA_objects_by_REST(self.first_system_id)
+
+        # Saving starting stage
+        stage_on_start = self.get_system_list()
+        pool_list_before = [j['label'] for j in generic_get('pools', array_id=self.first_system_id)]
+        volume_list_before = [j['name'] for j in generic_get('volumes', array_id=self.first_system_id)]
+        volume_copies_list_before = [j['id'] for j in generic_get('volume_copies', array_id=self.first_system_id)]
+
+        self.log.debug("Current systems (before test): {systems}".format(systems=stage_on_start))
+        self.log.debug("(before manifests) List of pools: {0}".format(pool_list_before))
+        self.log.debug("(before manifests) List of volumes: {0}".format(volume_list_before))
+        self.log.debug("(before manifests) List of volume copies: {0}".format(volume_copies_list_before))
+
+        # Select free disks
+        free_disks = self.get_free_disk(self.first_system_id, number=2)
+        self.log.debug("Select free disks on '{1}': {0}".format(free_disks, self.first_system_id))
+
+        # Constructing  custom site.pp and switching on it
+        rand_hash = hex(random.getrandbits(24))[2:-1]
+        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_volume_copy_create_delete_{0}', rand_hash)
+
+        p = dict(pool_id='BANANA_POOL_{0}'.format(rand_hash),
+                 ensure='present',
+                 system_id=self.first_system_id,
+                 raidlevel='raid0',
+                 diskids="{0}".format(free_disks))
+
+        v1 = dict(volume_id='BANANA_VOLUME_SOURCE_{0}'.format(rand_hash),
+                  ensure='present',
+                  system_id=self.first_system_id,
+                  size='1',
+                  pool_id=p['pool_id'],
+                  sizeunit='gb',
+                  segsize='512',
+                  thin='false')
+
+        v2 = dict(volume_id='BANANA_VOLUME_TARGET_{0}'.format(rand_hash),
+                  ensure='present',
+                  system_id=self.first_system_id,
+                  size='1',
+                  pool_id=p['pool_id'],
+                  sizeunit='gb',
+                  segsize='512',
+                  thin='false')
+
+        c = dict(volume_copy_id='BANANA_COPY_{0}'.format(rand_hash),
+                 ensure='present',
+                 system_id=self.first_system_id,
+                 source_volume='BANANA_VOLUME_SOURCE_{0}'.format(rand_hash),
+                 target_volume='BANANA_VOLUME_TARGET_{0}'.format(rand_hash),
+                 priority='priority3',
+                 targetwriteprotected='true',
+                 disablesnapshot='false',
+                 )
+
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
+                                                 self.manifest_storage_pool_section.format(**p) +
+                                                 self.manifest_storage_volume_section.format(**v1) +
+                                                 self.manifest_storage_volume_section.format(**v2) +
+                                                 self.manifest_storage_volume_copy_section.format(**c) +
+                                                 r'Netapp_e_storage_pool <| |> -> Netapp_e_volume <| |> -> Netapp_e_volume_copy <| |>'
+                                                 )
+        self.switch_to_custom_manifest(new_site_pp)
+
+        # Run 'puppet device' by subprocess
+        self.run_puppet_device()
+        self.output_errors_has('BANANA')
+
+        pool_list_after_create = [j['label'] for j in generic_get('pools', array_id=self.first_system_id)]
+        volume_list_after_create = [j['name'] for j in generic_get('volumes', array_id=self.first_system_id)]
+        volume_copies_list_after_create = [j['id'] for j in generic_get('volume_copies', array_id=self.first_system_id)]
+        self.log.debug("(after creating manifest) List of pools: {0}".format(pool_list_after_create))
+        self.log.debug("(after creating manifests) List of volumes: {0}".format(volume_list_after_create))
+        self.log.debug("(after creating manifests) List of volume copies: {0}".format(volume_copies_list_after_create))
+
+        # Remove
+        p['ensure'] = 'absent'
+        v1['ensure'] = 'absent'
+        v2['ensure'] = 'absent'
+        c['ensure'] = 'absent'
+
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
+                                                 self.manifest_storage_pool_section.format(**p) +
+                                                 self.manifest_storage_volume_section.format(**v1) +
+                                                 self.manifest_storage_volume_section.format(**v2) +
+                                                 self.manifest_storage_volume_copy_section.format(**c) +
+                                                 r'Netapp_e_volume_copy <| |> -> Netapp_e_volume <| |> -> Netapp_e_storage_pool <| |>'
+                                                 )
+
+        new_site_pp = self.remove_line_from_multiline_regexp(new_site_pp, 'require')
+        # TODO replace name with some funny word - will it work?
+
+        self.switch_to_custom_manifest(new_site_pp)
+
+        # Run 'puppet device' by subprocess
+        self.run_puppet_device()
+        self.output_errors_has('BANANA')
+
+        pool_list_after_delete = [j['label'] for j in generic_get('pools', array_id=self.first_system_id)]
+        volume_list_after_delete = [j['name'] for j in generic_get('thin_volumes', array_id=self.first_system_id)]
+        volume_copies_list_after_delete = [j['id'] for j in generic_get('volume_copies', array_id=self.first_system_id)]
+        self.log.debug("(after deleting manifest) List of pools: {0}".format(pool_list_after_delete))
+        self.log.debug("(after deleting manifests) List of volumes: {0}".format(volume_list_after_delete))
+        self.log.debug("(after deleting manifests) List of volume copies: {0}".format(volume_copies_list_after_delete))
+
+        # Assertions
+        assert set(volume_copies_list_after_create) != set(volume_copies_list_before) and \
+            'BANANA_COPY_{0}'.format(rand_hash) not in volume_copies_list_after_delete
+
+#####################################################################################################################
+
+    @unittest2.skip('')
+    def test_netapp_hostgroup_empty_create_delete(self):
+
+        """
+        Test of creating/deleting host group
+
+        1. Read group list by REST
+        2. Create group by manifest
+        3. Read group list by REST
+        2. Create group by manifest
+        3. Read group list by REST
+        """
+
+        # Preparation and cleaning up of storage
+        self.restore_first_system_by_REST()
+        self.remove_BANANA_objects_by_REST(self.first_system_id)
+
+        # Saving starting stage
+        stage_on_start = self.get_system_list()
+        hostgroups_before = [j['id'] for j in generic_get('host_groups', array_id=self.first_system_id)]
+        hostgroups_before_for_print = ["'{1}'({0})".format(j['id'], j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
+        self.log.debug("Current systems (before test): {systems}".format(systems=stage_on_start))
+        self.log.debug("(before manifests) List of hostgroups: {0}".format(hostgroups_before_for_print))
+
+        # Constructing  custom site.pp and switching on it
+        rand_hash = hex(random.getrandbits(24))[2:-1]
+        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_hostgroup_empty_create_delete_{0}', rand_hash)
+
+        hg = dict(hostgroup_id='BANANA_HOSTGROUP_{0}'.format(rand_hash),
+                  ensure='present',
+                  system_id=self.first_system_id)
+
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
+                                                 self.manifest_storage_hostgroup_section.format(**hg))
+        self.switch_to_custom_manifest(new_site_pp)
+
+        # Run 'puppet device' by subprocess
+        self.run_puppet_device()
+        self.output_errors_has('BANANA')
+
+        hostgroups_after_create = [j['id'] for j in generic_get('host_groups', array_id=self.first_system_id)]
+        hostgroups_after_create_for_print = ["'{1}'({0})".format(j['id'],j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
+        self.log.debug("(after creation manifest) List of hostgroups: {0}".format(hostgroups_after_create_for_print))
+
+        # Remove
+        hg['ensure'] = 'absent'
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
+                                                 self.manifest_storage_hostgroup_section.format(**hg))
+        self.switch_to_custom_manifest(new_site_pp)
+
+        # Run 'puppet device' by subprocess
+        self.run_puppet_device()
+        self.output_errors_has('BANANA')
+
+        hostgroups_after_delete = [j['id'] for j in generic_get('host_groups', array_id=self.first_system_id)]
+        hostgroups_after_delete_for_print = ["'{1}'({0})".format(j['id'], j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
+        self.log.debug("(after deletion manifest) List of hostgroups: {0}".format(hostgroups_after_delete_for_print))
+
+        # Assertions
+        assert set(hostgroups_before) != set(hostgroups_after_create) and \
+            'BANANA_HOSTGROUP_{0}'.format(rand_hash) not in hostgroups_after_delete
+
+#####################################################################################################################
+
+    @unittest2.skip('')
+    def test_netapp_hostgroup_delete_negative(self):
+        """
+        Test of non-existent hostgroup deleting
+        """
+
+        # Preparation and cleaning up of storage
+        self.restore_first_system_by_REST()
+        self.remove_BANANA_objects_by_REST(self.first_system_id)
+
+        # Saving starting stage
+        stage_on_start = self.get_system_list()
+        hostgroups_before = [j['id'] for j in generic_get('host_groups', array_id=self.first_system_id)]
+        hostgroups_before_for_print = ["'{1}'({0})".format(j['id'], j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
+        self.log.debug("Current systems (before test): {systems}".format(systems=stage_on_start))
+        self.log.debug("(before manifests) List of hostgroups: {0}".format(hostgroups_before_for_print))
+
+        # Constructing  custom site.pp and switching on it
+        rand_hash = hex(random.getrandbits(24))[2:-1]
+        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_hostgroup_empty_create_delete_{0}', rand_hash)
+        hg = dict(hostgroup_id='BANANA_HOSTGROUP_{0}'.format(rand_hash),
+                  ensure='absent',
+                  system_id=self.first_system_id)
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
+                                                 self.manifest_storage_hostgroup_section.format(**hg))
+        self.switch_to_custom_manifest(new_site_pp)
+
+        # Run 'puppet device' by subprocess
+        self.run_puppet_device()
+        self.output_errors_has('BANANA')
+
+        hostgroups_after_create = [j['id'] for j in generic_get('host_groups', array_id=self.first_system_id)]
+        hostgroups_after_create_for_print = ["'{1}'({0})".format(j['id'],j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
+        self.log.debug("(after creation manifest) List of hostgroups: {0}".format(hostgroups_after_create_for_print))
+
+        #TODO Assertions
+        assert self.output_errors_has('BANANA_HOSTGROUP_{0}'.format(rand_hash))
+
+#####################################################################################################################
+
+    @unittest2.skip('')
+    def test_netapp_hostgroup_duplicate_negative(self):
+        """
+        Test of duplicate hostgroup creating
+
+        """
+
+        # Preparation and cleaning up of storage
+        self.restore_first_system_by_REST()
+        self.remove_BANANA_objects_by_REST(self.first_system_id)
+
+        # Saving starting stage
+        stage_on_start = self.get_system_list()
+        hostgroups_before = [j['id'] for j in generic_get('host_groups', array_id=self.first_system_id)]
+        hostgroups_before_for_print = ["'{1}'({0})".format(j['id'], j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
+        self.log.debug("Current systems (before test): {systems}".format(systems=stage_on_start))
+        self.log.debug("(before manifests) List of hostgroups: {0}".format(hostgroups_before_for_print))
+
+        # Constructing  custom site.pp and switching on it
+        rand_hash = hex(random.getrandbits(24))[2:-1]
+        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_hostgroup_empty_create_delete_{0}', rand_hash)
+        hg1 = dict(hostgroup_id='BANANA_HOSTGROUP_DUPLICATE_{0}'.format(rand_hash),
+                  ensure='present',
+                  system_id=self.first_system_id)
+        hg2 = dict(hostgroup_id='BANANA_HOSTGROUP_DUPLICATE_{0}'.format(rand_hash),
+                  ensure='present',
+                  system_id=self.first_system_id)
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
+                                                 self.manifest_storage_hostgroup_section.format(**hg1) +
+                                                 self.manifest_storage_hostgroup_section.format(**hg2))
+        self.switch_to_custom_manifest(new_site_pp)
+
+        # Run 'puppet device' by subprocess
+        self.run_puppet_device()
+        self.output_errors_has('BANANA')
+
+        hostgroups_after_create = [j['id'] for j in generic_get('host_groups', array_id=self.first_system_id)]
+        hostgroups_after_create_for_print = ["'{1}'({0})".format(j['id'],j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
+        self.log.debug("(after creation manifest) List of hostgroups: {0}".format(hostgroups_after_create_for_print))
+
+        #Assertions
+        assert 'BANANA_HOSTGROUP_DUPLICATE_{0}'.format(rand_hash) not in hostgroups_after_create
+
+#####################################################################################################################
+
+    @unittest2.skip('')
+    def test_netapp_host_create_delete(self):
+        """
+        Test of  host creation/deletion
+
+        1. Get host list
+        2. Create hostgroup
+        3. Create host with random type from host-types
+        4. Delete host
+
+        """
+
+        # Preparation and cleaning up of storage
+        self.restore_first_system_by_REST()
+        self.remove_BANANA_objects_by_REST(self.first_system_id)
+
+        # Saving starting stage
+        stage_on_start = self.get_system_list()
+        hostgroups_before_for_print = ["'{1}'({0})".format(j['id'], j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
+        hosts_before = [j['label'] for j in generic_get('hosts', array_id=self.first_system_id)]
+        hosts_before_for_print = ["'{1}'({0})".format(j['id'], j['label']) for j in generic_get('hosts', array_id=self.first_system_id)]
+        self.log.debug("Current systems (before test): {systems}".format(systems=stage_on_start))
+        self.log.debug("(before manifests) List of hostgroups: {0}".format(hostgroups_before_for_print))
+        self.log.debug("(before manifests) List of hosts: {0}".format(hosts_before_for_print))
+
+        # Constructing  custom site.pp and switching on it
+        rand_hash = hex(random.getrandbits(24))[2:-1]
+        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_host_create_delete_{0}', rand_hash)
+        hg = dict(hostgroup_id='BANANA_HOSTGROUP_{0}'.format(rand_hash),
+                  ensure='present',
+                  system_id=self.first_system_id)
+        port_types = [ 'iscsi', ]# ['notImplemented', 'scsi', 'fc', 'sata', 'sas', 'iscsi', 'ib', 'fcoe', '__UNDEFINED']
+
+        p1 = "{{type => '{type}', port => '{port}', label => '{label}'}}".format(type=random.choice(port_types),
+                                                                                 port='iqn.1998-05.com.osx:cd1234abcdef',
+                                                                                 label='BANANA_PORT_ONE_{0}'.format(rand_hash))
+        p2 = "{{type => '{type}', port => '{port}', label => '{label}'}}".format(type=random.choice(port_types),
+                                                                                 port='iqn.1998-05.com.windows:cd42b74121212',
+                                                                                 label='BANANA_PORT_TWO_{0}'.format(rand_hash))
+        ports = "[{0},\n\t\t\t {1}]".format(p1, p2)
+        h = dict(host_id='BANANA_HOST_{0}'.format(rand_hash),
+                 ensure='present',
+                 typeindex=random.choice([i['index'] for i in generic_get('host_types', array_id=self.first_system_id)]),
+                 system_id=self.first_system_id,
+                 hostgroup_id=hg['hostgroup_id'],
+                 ports=ports)
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
+                                                 self.manifest_storage_hostgroup_section.format(**hg) +
+                                                 self.manifest_storage_host_section.format(**h) +
+                                                 'Netapp_e_host_group <| |> -> Netapp_e_host <| |>')
+        self.switch_to_custom_manifest(new_site_pp)
+
+        # Run 'puppet device' by subprocess
+        self.run_puppet_device()
+        self.output_errors_has('BANANA')
+
+        hostgroups_after_create_for_print = ["'{1}'({0})".format(j['id'],j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
+        hosts_after_create = [j['label'] for j in generic_get('hosts', array_id=self.first_system_id)]
+        hosts_after_create_for_print = ["'{1}'({0})".format(j['id'], j['label']) for j in generic_get('hosts', array_id=self.first_system_id)]
+        self.log.debug("(after creation manifest) List of hostgroups: {0}".format(hostgroups_after_create_for_print))
+        self.log.debug("(after creation manifests) List of hosts: {0}".format(hosts_after_create_for_print))
+
+        h['ensure'] = 'absent'
+        # TODO Change type and other things - will it work?
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
+                                                 self.manifest_storage_hostgroup_section.format(**hg) +
+                                                 self.manifest_storage_host_section.format(**h))
+        self.switch_to_custom_manifest(new_site_pp)
+
+        # Run 'puppet device' by subprocess
+        self.run_puppet_device()
+        self.output_errors_has('BANANA')
+
+        hostgroups_after_delete_for_print = ["'{1}'({0})".format(j['id'],j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
+        hosts_after_delete = [j['label'] for j in generic_get('hosts', array_id=self.first_system_id)]
+        hosts_after_delete_for_print = ["'{1}'({0})".format(j['id'], j['label']) for j in generic_get('hosts', array_id=self.first_system_id)]
+        self.log.debug("(after deletion manifest) List of hostgroups: {0}".format(hostgroups_after_delete_for_print))
+        self.log.debug("(after deletion manifests) List of hosts: {0}".format(hosts_after_delete_for_print))
+
+        self.remove_BANANA_objects_by_REST(self.first_system_id)
+
+        #Assertions
+        assert 'BANANA_HOST_{0}'.format(rand_hash) in hosts_after_create \
+               and 'BANANA_HOST_{0}'.format(rand_hash) not in hosts_after_delete
+
+#####################################################################################################################
+
+    # TODO map
+    # TODO snapshot_volume
+    # TODO snapshot_image
+
+#####################################################################################################################
+
+    @unittest2.skip('')
+    def test_netapp_snapshot_group_create_delete(self):
+        """
+        Test of creation/deletion snapshot_group
+
+        1. Get initial objects list
+        2. Create pool (large :)) and base volume
+        3. Create snapshot group pointed to this base volume
+
+        """
+
+        # Preparation and cleaning up of storage
+        self.restore_first_system_by_REST()
+        self.remove_BANANA_objects_by_REST(self.first_system_id)
+
+        # Saving starting stage
+        stage_on_start = self.get_system_state(self.first_system_id)        
+
+        self.log.debug("Current systems (before test): {0}".format(stage_on_start['storage_systems']))
+        self.log.debug("(before manifests) List of pools: {0}".format(stage_on_start['pools']))
+        self.log.debug("(before manifests) List of volumes: {0}".format(stage_on_start['volumes']))
+        self.log.debug("(before manifests) List of thin volumes: {0}".format(stage_on_start['thin_volumes']))
+        self.log.debug("(before manifests) List of snapshot groups: {0}".format(stage_on_start['snapshot_groups_for_print']))
+
+        # Constructing  custom site.pp and switching on it
+        free_disks = self.get_free_disk(self.first_system_id, number=2)
+        self.log.debug("Select free disks on '{1}': {0}".format(free_disks, self.first_system_id))
+        rand_hash = hex(random.getrandbits(24))[2:-1]
+        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_snapshot_group_create_delete_{0}', rand_hash)
+        p = dict(pool_id='BANANA_POOL_{0}'.format(rand_hash),
+                 ensure='present',
+                 system_id=self.first_system_id,
+                 raidlevel='raid0',
+                 diskids="{0}".format(free_disks))
+        v = dict(volume_id='BANANA_VOLUME_{0}'.format(rand_hash),
+                 ensure='present',
+                 system_id=self.first_system_id,
+                 size='3',
+                 pool_id=p['pool_id'],
+                 sizeunit='gb',
+                 segsize='512',
+                 thin='false')
+        sg = dict(snapshot_group_id='BANANA_SNAPSHOT_GROUP_{0}'.format(rand_hash),
+                  ensure='present',
+                  system_id=self.first_system_id,
+                  pool_id=p['pool_id'],
+                  volume_id=v['volume_id'],
+                  repositorysize='30',
+                  warnthreshold='75',
+                  policy='purgepit', # ['unknown', 'failbasewrites', 'purgepit', '__UNDEFINED']
+                  limit='7',
+                  )
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
+                                                 self.manifest_storage_pool_section.format(**p) +
+                                                 self.manifest_storage_volume_section.format(**v) +
+                                                 self.manifest_storage_snapshot_group_section.format(**sg)+
+                                                 'Netapp_e_storage_pool <| |> -> Netapp_e_volume <| |> -> Netapp_e_snapshot_group  <| |>')
+        self.switch_to_custom_manifest(new_site_pp)
+
+        # Run 'puppet device' by subprocess
+        self.run_puppet_device()
+        self.output_errors_has('BANANA')
+
+        stage_after_create = self.get_system_state(self.first_system_id)
+        self.log.debug("(after creation manifests) List of pools: {0}".format(stage_after_create['pools']))
+        self.log.debug("(after creation manifests) List of volumes: {0}".format(stage_after_create['volumes']))
+        self.log.debug("(after creation manifests) List of thin volumes: {0}".format(stage_after_create['thin_volumes']))
+        self.log.debug("(after creation manifests) List of snapshot groups: {0}".format(stage_after_create['snapshot_groups_for_print']))
+
+        # Remove
+        sg['ensure'] = 'absent'
+        v['ensure'] = 'absent'
+        p['ensure'] = 'absent'
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
+                                                 self.manifest_storage_pool_section.format(**p) +
+                                                 self.manifest_storage_volume_section.format(**v) +
+                                                 self.manifest_storage_snapshot_group_section.format(**sg) +
+                                                 'Netapp_e_snapshot_group <| |> -> Netapp_e_volume <| |> -> Netapp_e_storage_pool <| |>')
+        new_site_pp = self.remove_line_from_multiline_regexp(new_site_pp, 'require')
+        self.switch_to_custom_manifest(new_site_pp)
+
+        # Run 'puppet device' by subprocess
+        self.run_puppet_device(verbose=True)
+        self.output_errors_has('BANANA')
+
+        stage_after_delete = self.get_system_state(self.first_system_id)
+        self.log.debug("(after deletion manifests) List of pools: {0}".format(stage_after_delete['pools']))
+        self.log.debug("(after deletion manifests) List of volumes: {0}".format(stage_after_delete['volumes']))
+        self.log.debug("(after deletion manifests) List of thin volumes: {0}".format(stage_after_delete['thin_volumes']))
+        self.log.debug("(after deletion manifests) List of snapshot groups: {0}".format(stage_after_delete['snapshot_groups_for_print']))
+
+        self.remove_BANANA_objects_by_REST(self.first_system_id)
+
+        #Assertions
+        assert sg['snapshot_group_id'] in stage_after_create['snapshot_groups'] \
+            and sg['snapshot_group_id'] not in stage_after_delete['snapshot_groups']
+
+
+#####################################################################################################################
+
+    #@unittest2.skip('')
+    def test_netapp_snapshot_image_create_delete(self):
+        """
+        Test of snapshot creation/deletion
+
+        """
+
+        # Preparation and cleaning up of storage
+        self.restore_first_system_by_REST()
+        self.remove_BANANA_objects_by_REST(self.first_system_id)
+
+        # Saving starting stage
+        stage_on_start = self.get_system_state(self.first_system_id)
+
+        self.log.debug("Current systems (before test): {0}".format(stage_on_start['storage_systems']))
+        self.log.debug("(before manifests) List of pools: {0}".format(stage_on_start['pools']))
+        self.log.debug("(before manifests) List of volumes: {0}".format(stage_on_start['volumes']))
+        self.log.debug("(before manifests) List of thin volumes: {0}".format(stage_on_start['thin_volumes']))
+        self.log.debug("(before manifests) List of snapshot groups: {0}".format(stage_on_start['snapshot_groups_for_print']))
+        self.log.debug("(before manifests) List of snapshot images: {0}".format(stage_on_start['snapshots_for_print']))
+
+
+        # Constructing  custom site.pp and switching on it
+        free_disks = self.get_free_disk(self.first_system_id, number=2)
+        self.log.debug("Select free disks on '{1}': {0}".format(free_disks, self.first_system_id))
+        rand_hash = hex(random.getrandbits(24))[2:-1]
+        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_snapshot_image_create_delete_{0}', rand_hash)
+        p = dict(pool_id='BANANA_POOL_{0}'.format(rand_hash),
+                 ensure='present',
+                 system_id=self.first_system_id,
+                 raidlevel='raid0',
+                 diskids="{0}".format(free_disks))
+        v = dict(volume_id='BANANA_VOLUME_{0}'.format(rand_hash),
+                 ensure='present',
+                 system_id=self.first_system_id,
+                 size='3',
+                 pool_id=p['pool_id'],
+                 sizeunit='gb',
+                 segsize='512',
+                 thin='false')
+        sg = dict(snapshot_group_id='BANANA_SNAPSHOT_GROUP_{0}'.format(rand_hash),
+                  ensure='present',
+                  system_id=self.first_system_id,
+                  pool_id=p['pool_id'],
+                  volume_id=v['volume_id'],
+                  repositorysize='30',
+                  warnthreshold='75',
+                  policy='purgepit', # ['unknown', 'failbasewrites', 'purgepit', '__UNDEFINED']
+                  limit='7',
+                  )
+        i = dict(snapshot_image_id='BANANA_IMAGE_{0}'.format(rand_hash),
+                 snapshot_group_id=sg['snapshot_group_id'],
+                 system_id=self.first_system_id)
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
+                                                 self.manifest_storage_pool_section.format(**p) +
+                                                 self.manifest_storage_volume_section.format(**v) +
+                                                 self.manifest_storage_snapshot_group_section.format(**sg) +
+                                                 self.manifest_storage_snapshot_image_section.format(**i) +
+                                                 'Netapp_e_storage_pool <| |> -> Netapp_e_volume <| |> -> Netapp_e_snapshot_group  <| |>')
+        self.switch_to_custom_manifest(new_site_pp)
+
+
+        # Run 'puppet device' by subprocess
+        self.run_puppet_device()
+        self.output_errors_has('BANANA')
+
+        stage_after_create = self.get_system_state(self.first_system_id)
+        self.log.debug("(after creation manifests) List of pools: {0}".format(stage_after_create['pools']))
+        self.log.debug("(after creation manifests) List of volumes: {0}".format(stage_after_create['volumes']))
+        self.log.debug("(after creation manifests) List of thin volumes: {0}".format(stage_after_create['thin_volumes']))
+        self.log.debug("(after creation manifests) List of snapshot groups: {0}".format(stage_after_create['snapshot_groups_for_print']))
+        self.log.debug("(after creation manifests) List of snapshot images: {0}".format(stage_after_create['snapshots_for_print']))
+
+        self.remove_BANANA_objects_by_REST(self.first_system_id)
+
+        #Assertions
+        # Check any snapshot_id points to correct group and volume
+        assertion = False
+
+        for i in set(stage_after_create['snapshots']) - set(stage_on_start['snapshots']):
+            tmp = stage_after_create['snapshots_for_assertion'][i]
+            if tmp['group'] == sg['snapshot_group_id'] and tmp['volume'] == v['volume_id']:
+                assertion = True
+
+        assert assertion
+
+#####################################################################################################################
+
+    @unittest2.skip('')
+    def test_netapp_snapshot_volume_create_delete(self):
+        """
+        Test of snapshot volume creation/deletion
+
+        """
+        # Preparation and cleaning up of storage
+        self.restore_first_system_by_REST()
+        self.remove_BANANA_objects_by_REST(self.first_system_id)
+
+        # Saving starting stage
+        stage_on_start = self.get_system_state(self.first_system_id)
+
+        self.log.debug("Current systems (before test): {0}".format(stage_on_start['storage_systems']))
+        self.log.debug("(before manifests) List of pools: {0}".format(stage_on_start['pools']))
+        self.log.debug("(before manifests) List of volumes: {0}".format(stage_on_start['volumes']))
+        self.log.debug("(before manifests) List of thin volumes: {0}".format(stage_on_start['thin_volumes']))
+        self.log.debug("(before manifests) List of snapshot groups: {0}".format(stage_on_start['snapshot_groups_for_print']))
+        self.log.debug("(before manifests) List of snapshot images: {0}".format(stage_on_start['snapshots_for_print']))
+
+        # Constructing  custom site.pp and switching on it
+
+        # Run 'puppet device' by subprocess
+        #self.run_puppet_device(verbose=True)
+        #self.output_errors_has('BANANA')
+
+        #Assertions
         assert True
+
 ##################################### HERE REAL TESTING HAS GONE !!! ################################################
 
 if __name__ == '__main__':

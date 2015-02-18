@@ -12,8 +12,10 @@ import netapp_config as configuration
 import datetime
 import logging
 import random
+import json
 
 import pprint
+import sys
 
 class MyTestSuite(unittest2.TestCase):
 
@@ -106,6 +108,67 @@ netapp_e_network_interface {{"{macAddr}":
 '''
 
 
+    manifest_storage_volume_copy_section = \
+'''
+     netapp_e_volume_copy {{'{volume_copy_id}':
+       ensure               => {ensure},
+       storagesystem        => "{system_id}",
+       source               => '{source_volume}',
+       target               => '{target_volume}',
+       copypriority         => '{priority}',
+       targetwriteprotected => {targetwriteprotected},
+       disablesnapshot      => {disablesnapshot},
+     }}
+'''
+
+    manifest_storage_hostgroup_section = \
+'''
+      netapp_e_host_group {{'{hostgroup_id}':
+        ensure        => {ensure},
+        storagesystem => "{system_id}",
+    }}
+'''
+
+    manifest_storage_host_section = \
+'''
+    netapp_e_host {{'{host_id}':
+      ensure        => {ensure},
+      typeindex     => {typeindex},
+      storagesystem => {system_id},
+      groupid       => '{hostgroup_id}',
+      ports         => {ports},
+    }}
+'''
+
+    manifest_storage_snapshot_group_section = \
+'''
+    netapp_e_snapshot_group {{'{snapshot_group_id}':
+      ensure         => {ensure},
+      storagesystem  => '{system_id}',
+      storagepool    => '{pool_id}',
+      volume         => '{volume_id}',
+      repositorysize => {repositorysize},
+      warnthreshold  => {warnthreshold},
+      policy         => '{policy}',
+      limit          => {limit}
+    }}
+'''
+
+    manifest_storage_snapshot_image_section = \
+'''
+    schedule {{ 'hourly':
+       period   => hourly,
+       repeat   => 60,
+    }}
+
+
+    netapp_e_snapshot_image {{'{snapshot_image_id}':
+       group         => '{snapshot_group_id}',
+       storagesystem => '{system_id}',
+       require       => Netapp_e_snapshot_group['{snapshot_group_id}'],
+       schedule      => 'hourly',
+    }}
+'''
 ########################################################################################################################
 
     @classmethod
@@ -175,7 +238,7 @@ netapp_e_network_interface {{"{macAddr}":
             if i.find('Error')>-1:
                 if i.find(pattern)>-1:
                     cls.log.debug("Line from command output contains {pattern}:\n>>>{line}\n".format(pattern=pattern, line=i))
-                    result=True
+                    result = True
         return result
 
 ########################################################################################################################
@@ -191,9 +254,9 @@ netapp_e_network_interface {{"{macAddr}":
         cls.log.debug("Running shell command 'puppet device' by subprocess...")
 
         #return subprocess.check_output(['puppet device --debug --user root', '-1'], shell=True)
-        child  = subprocess.Popen(['puppet','device','--debug','--user','root', ],
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.STDOUT)
+        child = subprocess.Popen(['puppet', 'device', '--debug', '--user', 'root', ],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT)
         cls.output = child.communicate()[0]
         cls.returncode = child.returncode
 
@@ -210,9 +273,9 @@ netapp_e_network_interface {{"{macAddr}":
     def rid_all_BANANAs(cls):
 
         for i in cls.get_system_list():
-            if re.match(r'^BANANA[0-9]?_',i):
+            if re.match(r'^BANANA[0-9]?_', i):
                 cls.log.debug("Delete '{system_id}' system by REST ...".format(system_id=i))
-                generic_delete('storage-system',array_id=i)
+                generic_delete('storage-system', array_id=i)
 
         # TODO For each BANANA system rid BANANA objects :)
 
@@ -249,7 +312,7 @@ netapp_e_network_interface {{"{macAddr}":
     def remove_line_from_multiline_regexp(cls, multiline, pattern):
         result = ''
         for l in cls.parse_multiline(multiline):
-            if not re.search(pattern,l):
+            if not re.search(pattern, l):
                 result = result + l + '\n'
         return result
 
@@ -274,7 +337,7 @@ netapp_e_network_interface {{"{macAddr}":
 
         raw_ethernet_interfaces_list = generic_get('ethernet-interfaces', array_id=system_id)
         actual_ips = [i['ipv4Address'] for i in raw_ethernet_interfaces_list
-                          if i['linkStatus'].strip() == 'up' and i['ipv4Enabled']]
+                      if i['linkStatus'].strip() == 'up' and i['ipv4Enabled']]
         return actual_ips
 
 ########################################################################################################################
@@ -287,8 +350,8 @@ netapp_e_network_interface {{"{macAddr}":
         dict['system_ip1'] = cls.first_system_ip1
         dict['system_ip2'] = cls.first_system_ip2
         dict['ensure'] = 'present'
-        dict['system_pass']=cls.first_system_pass
-        dict['signature']=signature.format(rand_hash)
+        dict['system_pass'] = cls.first_system_pass
+        dict['signature'] = signature.format(rand_hash)
 
         return dict
 
@@ -310,25 +373,56 @@ netapp_e_network_interface {{"{macAddr}":
         return disks
 
 ########################################################################################################################
+
     @classmethod
-    def remove_BANANA_objects(cls, system_id):
+    def remove_BANANA_objects_by_REST(cls, system_id):
 
-        for volume in generic_get('volumes', array_id=system_id):
-            if re.search('BANANA_VOLUME', volume['label']):
-                cls.log.debug("DELETE VOLUME '{0}'!".format(volume['label']))
-                generic_delete('volume', id=volume['id'], array_id=system_id)
+        try:
+            
+            for volume_copy in generic_get('volume_copies', array_id=system_id):
+                s = (generic_get('volume', array_id=system_id, id=volume_copy['sourceVolume']))['label']
+                t = (generic_get('volume', array_id=system_id, id=volume_copy['targetVolume']))['label']
+                if re.search('BANANA_VOLUME', s) and re.search('BANANA_VOLUME', t):
+                    cls.log.debug("DELETE VOLUME COPY'{0}' BY REST!".format(volume_copy['id']))
+                    generic_delete('volume_copy', array_id=system_id, id=volume_copy['id'])
 
-        for thin_volume in generic_get('thin_volumes', array_id=system_id):
-            if re.search('BANANA_VOLUME', thin_volume['label']):
-                cls.log.debug("DELETE THIN VOLUME '{0}'!".format(thin_volume['label']))
-                generic_delete('thin_volume', id=thin_volume['id'], array_id=system_id)
+            for snapshot_group in generic_get('snapshot_groups', array_id=system_id):
+                if re.search('BANANA_SNAPSHOT', snapshot_group['label']):
+                    cls.log.debug("DELETE SNAPSHOT GROUP '{0}' BY REST!".format(snapshot_group['label']))
+                    generic_delete('snapshot_group', id=snapshot_group['id'], array_id=system_id)
 
-        for pool in generic_get('pools', array_id=system_id):
-            if re.search('BANANA_POOL', pool['label']):
-                cls.log.debug("DELETE POOL '{0}'!".format(pool['label']))
-                generic_delete('pool', id=pool['id'], array_id=system_id)
+            for volume in generic_get('volumes', array_id=system_id):
+                if re.search('BANANA_VOLUME', volume['label']):
+                    cls.log.debug("DELETE VOLUME '{0}' BY REST!".format(volume['label']))
+                    generic_delete('volume', id=volume['id'], array_id=system_id)
+
+            for thin_volume in generic_get('thin_volumes', array_id=system_id):
+                if re.search('BANANA_VOLUME', thin_volume['label']):
+                    cls.log.debug("DELETE THIN VOLUME '{0}' BY REST!".format(thin_volume['label']))
+                    generic_delete('thin_volume', id=thin_volume['id'], array_id=system_id)
+
+            for pool in generic_get('pools', array_id=system_id):
+                if re.search('BANANA_POOL', pool['label']):
+                    cls.log.debug("DELETE POOL '{0}' BY REST!".format(pool['label']))
+                    generic_delete('pool', id=pool['id'], array_id=system_id)
+
+            for hostgroup in generic_get('host_groups', array_id=system_id):
+                if re.search('BANANA_HOSTGROUP', hostgroup['label']):
+                    cls.log.debug("DELETE HOSTGROUP '{0}' BY REST!".format(hostgroup['label']))
+                    generic_delete('host_group', id=hostgroup['id'], array_id=system_id)
+
+            for storage_system in cls.get_system_list():
+                if re.match(r'^BANANA[0-9]?_', storage_system):
+                    cls.log.debug("DELETE STORAGE SYSTEM '{system_id}' BY REST!".format(system_id=storage_system))
+                    generic_delete('storage-system', array_id=storage_system)
+
+            # TODO Delete host
+
+        except:
+            print sys.exc_info()[0]
 
         return
+
 ########################################################################################################################
 
     @classmethod
@@ -339,6 +433,41 @@ netapp_e_network_interface {{"{macAddr}":
                       random.randint(0x00, 0xff) ]
 
         return ''.join(map(lambda x: "%02x" % x, random_mac))
+
+########################################################################################################################
+    @classmethod
+    def get_system_state(cls, system_id):
+
+        snapshot_groups = dict((snapshot_group['id'],snapshot_group['label']) for snapshot_group in generic_get('snapshot_groups', array_id=system_id))
+        all_volumes = dict((volume['id'],volume['name']) for volume in generic_get('volumes', array_id=system_id))
+        all_volumes.update(dict((thin_volume['id'],thin_volume['name']) for thin_volume in generic_get('thin_volumes', array_id=system_id)))
+        snapshots_for_print = ['(id: {0}, group: {1}, volume: {2})'.format(x['id'],
+                                                                           snapshot_groups[x['pitGroupRef']],
+                                                                           all_volumes[x['baseVol']])
+                               for x in generic_get('snapshots', array_id=system_id)]
+
+        snapshots_for_assertion = dict((x['id'], {
+                                       'group': snapshot_groups[x['pitGroupRef']],
+                                       'volume': all_volumes[x['baseVol']],
+                                       })
+                                       for x in generic_get('snapshots', array_id=system_id))
+
+
+        return dict(storage_systems=cls.get_system_list(),
+                    pools=[j['label'] for j in generic_get('pools', array_id=system_id)],
+                    volumes=[j['name'] for j in generic_get('volumes', array_id=system_id)],
+                    thin_volumes=[j['name'] for j in generic_get('thin_volumes', array_id=system_id)],
+                    volume_copies=[j['id'] for j in generic_get('volume_copies', array_id=system_id)],
+                    hostgroups=[j['id'] for j in generic_get('host_groups', array_id=system_id)],
+                    hostgroups_for_print=["'{1}'({0})".format(j['id'], j['label']) for j in generic_get('host_groups', array_id=system_id)],
+                    hosts_before=[j['label'] for j in generic_get('hosts', array_id=system_id)],
+                    hosts_before_for_print=["'{1}'({0})".format(j['id'], j['label']) for j in generic_get('hosts', array_id=system_id)],
+                    snapshot_groups=[j['label'] for j in generic_get('snapshot_groups', array_id=system_id)],
+                    snapshot_groups_for_print=["'{1}'({0})".format(j['id'], j['label']) for j in generic_get('snapshot_groups', array_id=system_id)],
+                    snapshots=[j['id'] for j in generic_get('snapshots', array_id=system_id)],
+                    snapshots_for_print=snapshots_for_print,
+                    snapshots_for_assertion=snapshots_for_assertion,
+                    )
 
 ########################################################################################################################
 
