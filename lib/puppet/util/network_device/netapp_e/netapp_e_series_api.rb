@@ -424,6 +424,39 @@ class NetApp
         false
       end
 
+      def get_mirror_groups
+        ids = get_storage_systems_id
+        all_mirror_groups = []
+        if not ids.empty?
+          ids.each do |sys_id|
+            response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/async-mirrors")
+            status(response, 200, 'Failed to get mirror groups')
+            m_groups = JSON.parse(response.body)
+            # add sys_id to volume hash
+            storage_system = { 'storagesystem' => sys_id }
+            m_groups.map! { |mg| mg.merge(storage_system) }
+            all_mirror_groups << m_groups
+          end
+          all_mirror_groups = all_mirror_groups.reduce(:concat)
+        end
+        all_mirror_groups
+      end
+
+      def create_mirror_group(sys_id, request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/async-mirrors", request_body.to_json)
+        status(response, 200, 'Failed to create mirror group')
+      end
+
+      def delete_mirror_group(sys_id, mg_id)
+        response = request(:delete, "/devmgr/v2/storage-systems/#{sys_id}/async-mirrors/#{mg_id}")
+        status(response, 204, 'Failed to delete mirror group')
+      end
+
+      def update_mirror_group(sys_id, mg_id, request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/async-mirrors/#{mg_id}", request_body.to_json)
+        status(response, 200, 'Failed to update mirror group')
+      end
+
       private
 
       # Determine the status of the response

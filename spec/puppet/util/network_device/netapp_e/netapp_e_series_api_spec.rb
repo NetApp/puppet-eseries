@@ -503,4 +503,35 @@ describe NetApp::ESeries::Api do
       expect { @netapp_api.storage_pool_id @sys_id, 'name' }.to raise_status_error('Failed to get pool id', @response)
     end
   end
+
+  context 'create_mirror_group' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/async-mirrors' }
+      let(:method_call) { @netapp_api.create_mirror_group 'sys_id', @request_body }
+      let(:fail_message) { 'Failed to create mirror group' }
+    end
+  end
+
+  context 'delete_mirror_group' do
+    it_behaves_like 'a simple API call', :delete, 204 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/async-mirrors/mirror_id' }
+      let(:method_call) { @netapp_api.delete_mirror_group 'sys_id', 'mirror_id' }
+      let(:fail_message) { 'Failed to delete mirror group' }
+    end
+  end
+
+  context 'update_mirror_group' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/async-mirrors/mirror_id' }
+      let(:method_call) { @netapp_api.update_mirror_group 'sys_id', 'mirror_id', @request_body }
+      let(:fail_message) { 'Failed to update mirror group' }
+    end
+  end
+
+  context 'get_mirror_groups' do
+    it_behaves_like 'a call based on storage systems', 'async-mirrors' do
+      let(:method_call) { @netapp_api.get_mirror_groups }
+      let(:fail_message) { 'Failed to get mirror groups' }
+    end
+  end
 end
