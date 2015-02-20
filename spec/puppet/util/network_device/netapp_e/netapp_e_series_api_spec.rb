@@ -64,6 +64,52 @@ shared_examples 'a call based on storage systems' do |uri_suffix|
   end
 end
 
+shared_examples 'a call for entity id based on storage system' do |uri_suffix, tested_method|
+  before(:each) do
+    @sys_id = 'sys_id'
+    @expect_in_request[:url] = @url + "/devmgr/v2/storage-systems/#{@sys_id}/#{uri_suffix}"
+    @method = @netapp_api.method(tested_method)
+  end
+  it 'should return nil if label does not match given name' do
+    name = 'name'
+    @response[:body] = JSON.generate([{ 'id' => 'entity_id',
+                                        'label' => 'not_name',
+                                        'key' => 'value' },
+                                      { 'id' => 'entity_id2',
+                                        'label' => 'not_name2',
+                                        'key' => 'value' }
+                                     ])
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, name).to be_nil
+  end
+
+  it 'should return nil if storage system do not have entities' do
+    name = 'name'
+    @response[:body] = JSON.generate([])
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, name).to eq(nil)
+  end
+
+  it 'should return entity id if label matches given name' do
+    name = 'name'
+    @response[:body] = JSON.generate([{ 'id' => 'entity_id',
+                                        'label' => 'not_name',
+                                        'key' => 'value' },
+                                      { 'id' => 'entity_id2',
+                                        'label' => name,
+                                        'key' => 'value' }
+                                     ])
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, name).to eq('entity_id2')
+  end
+
+  it 'should raise RuntimeError if status code is not 200' do
+    @response[:status] = 404
+    Excon.stub(@expect_in_request, @response)
+    expect { @method.call @sys_id, 'name' }.to raise_status_error(fail_message, @response)
+  end
+end
+
 describe NetApp::ESeries::Api do
   before(:each) do
     @user = 'user'
@@ -462,45 +508,126 @@ describe NetApp::ESeries::Api do
   end
 
   context 'storage_pool_id' do
-    before(:each) do
-      @sys_id = 'sys_id'
-      @expect_in_request[:url] = @url + "/devmgr/v2/storage-systems/#{@sys_id}/storage-pools"
+    it_behaves_like 'a call for entity id based on storage system', 'storage-pools', :storage_pool_id do
+      let(:fail_message) { 'Failed to get pool id' }
     end
-    it 'should return nil if pool label does not match given name' do
-      name = 'name'
-      @response[:body] = JSON.generate([{ 'id' => 'pool_id',
-                                          'label' => 'not_name',
-                                          'key' => 'value' },
-                                        { 'id' => 'pool_id2',
-                                          'label' => 'not_name2',
-                                          'key' => 'value' }
-                                       ])
-      Excon.stub(@expect_in_request, @response)
-      expect(@netapp_api.storage_pool_id @sys_id, name).to be_nil
-    end
+  end
 
-    it 'should return nil if storage system do not have pools' do
-      name = 'name'
-      @response[:body] = JSON.generate([])
-      Excon.stub(@expect_in_request, @response)
-      expect(@netapp_api.storage_pool_id @sys_id, name).to eq(nil)
+  context 'host_group_id' do
+    it_behaves_like 'a call for entity id based on storage system', 'host-groups', :host_group_id do
+      let(:fail_message) { 'Failed to get host group id' }
     end
-    it 'should return pool id if pool label matches given name' do
-      name = 'name'
-      @response[:body] = JSON.generate([{ 'id' => 'pool_id',
-                                          'label' => 'not_name',
-                                          'key' => 'value' },
-                                        { 'id' => 'pool_id2',
-                                          'label' => name,
-                                          'key' => 'value' }
-                                       ])
+  end
+
+  context 'host_id' do
+    it_behaves_like 'a call for entity id based on storage system', 'hosts', :host_id do
+      let(:fail_message) { 'Failed to get host id' }
+    end
+  end
+
+  context 'create_mirror_group' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/async-mirrors' }
+      let(:method_call) { @netapp_api.create_mirror_group 'sys_id', @request_body }
+      let(:fail_message) { 'Failed to create mirror group' }
+    end
+  end
+
+  context 'delete_mirror_group' do
+    it_behaves_like 'a simple API call', :delete, 204 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/async-mirrors/mirror_id' }
+      let(:method_call) { @netapp_api.delete_mirror_group 'sys_id', 'mirror_id' }
+      let(:fail_message) { 'Failed to delete mirror group' }
+    end
+  end
+
+  context 'update_mirror_group' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/async-mirrors/mirror_id' }
+      let(:method_call) { @netapp_api.update_mirror_group 'sys_id', 'mirror_id', @request_body }
+      let(:fail_message) { 'Failed to update mirror group' }
+    end
+  end
+
+  context 'get_mirror_groups' do
+    it_behaves_like 'a call based on storage systems', 'async-mirrors' do
+      let(:method_call) { @netapp_api.get_mirror_groups }
+      let(:fail_message) { 'Failed to get mirror groups' }
+    end
+  end
+
+  context 'get_lun_mapping' do
+    before(:each) do
+      @expect_in_request[:url] = @url + '/devmgr/v2/storage-systems/sys_id/volume-mappings'
+    end
+    it 'should raise Runtime Error if status code is not 200' do
+      @response[:status] = 404
       Excon.stub(@expect_in_request, @response)
-      expect(@netapp_api.storage_pool_id @sys_id, name).to eq('pool_id2')
+      expect { @netapp_api.get_lun_mapping 'sys_id', 'lun' }.to raise_status_error('Failed to get lun mappings', @response)
+    end
+    it 'should return :absent if lun is not present' do
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.get_lun_mapping 'sys_id', 'lun').to eq(:absent)
+    end
+    context 'when lun is present' do
+      before :each do
+        @body[1]['lun'] = :lun
+        @body[1].merge!('lun' => :lun,
+                        'lunMappingRef' => 'lunMappingRef_value')
+        @response[:body] = JSON.generate(@body)
+        Excon.stub(@expect_in_request, @response)
+      end
+      it 'should return :present if status is set to true' do
+        expect(@netapp_api.get_lun_mapping 'sys_id', 'lun', true).to eq(:present)
+      end
+      it 'should return lunMappingRef if status is set to false' do
+        expect(@netapp_api.get_lun_mapping 'sys_id', 'lun', false).to eq('lunMappingRef_value')
+      end
+    end
+  end
+  context 'create_lun_mapping' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/volume-mappings' }
+      let(:method_call) { @netapp_api.create_lun_mapping 'sys_id', 'map_id' }
+      let(:fail_message) { 'Failed to create lun mapping' }
+    end
+  end
+  context 'delete_lun_mapping' do
+    it_behaves_like 'a simple API call', :delete, 204 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/volume-mappings/map_id' }
+      let(:method_call) { @netapp_api.delete_lun_mapping 'sys_id', 'map_id' }
+      let(:fail_message) { 'Failed to delete lun mapping' }
+    end
+  end
+
+  context 'create_mirror_members' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/async-mirrors/mg_id/pairs' }
+      let(:method_call) { @netapp_api.create_mirror_members 'sys_id', 'mg_id', @request_body }
+      let(:fail_message) { 'Failed to create mirror group members' }
+    end
+  end
+
+  context 'delete_mirror_members' do
+    it_behaves_like 'a simple API call', :delete, 204 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/async-mirrors/mg_id/pairs/mem_id' }
+      let(:method_call) { @netapp_api.delete_mirror_members 'sys_id', 'mg_id', 'mem_id' }
+      let(:fail_message) { 'Failed to delete mirror group members' }
+    end
+  end
+
+  context 'get_mirror_members' do
+    before(:each) do
+      @expect_in_request[:url] = @url + '/devmgr/v2/storage-systems/sys_id/async-mirrors/mg_id/pairs'
+    end
+    it 'should return parsed body if status code is 200' do
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.get_mirror_members 'sys_id', 'mg_id').to eq(@body)
     end
     it 'should raise RuntimeError if status code is not 200' do
       @response[:status] = 404
       Excon.stub(@expect_in_request, @response)
-      expect { @netapp_api.storage_pool_id @sys_id, 'name' }.to raise_status_error('Failed to get pool id', @response)
+      expect { @netapp_api.get_mirror_members 'sys_id', 'mg_id' }.to raise_status_error('Failed to get mirror group members', @response)
     end
   end
 end

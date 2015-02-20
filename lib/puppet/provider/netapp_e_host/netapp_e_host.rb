@@ -20,7 +20,7 @@ Puppet::Type.type(:netapp_e_host).provide(:netapp_e_host, :parent => Puppet::Pro
           :ports => host['hostSidePorts'],
           :initiators => host['initiators_ref_numbers'],
           :ensure => :present
-         )
+      )
     end
   rescue => detail
     raise Puppet::Error, "#{detail}"
@@ -36,18 +36,16 @@ Puppet::Type.type(:netapp_e_host).provide(:netapp_e_host, :parent => Puppet::Pro
 
   def create
     request_body = { :name => resource[:name], :hostType => { :index => resource[:typeindex] } }
-    if resource[:groupid]
-      if resource[:groupid].is_a?(Hash)
-        # search once more
-        groupid = transport.host_group_id(resource[:storagesystem], resource[:groupid][:value])
-        if groupid
-          request_body['groupId'] = groupid
-        else
-          raise Puppet::Error, "Not found hostgroup #{resource[:groupid][:value]}"
-        end
+    if resource[:groupid].is_a?(Hash)
+      # search once more
+      groupid = transport.host_group_id(resource[:storagesystem], resource[:groupid][:value])
+      if groupid
+        request_body['groupId'] = groupid
       else
-        request_body['groupId'] = resource[:groupid]
+        raise Puppet::Error, "Not found hostgroup #{resource[:groupid][:value]}"
       end
+    else
+      request_body['groupId'] = resource[:groupid]
     end
 
     request_body['ports'] = resource[:ports] if resource[:ports]

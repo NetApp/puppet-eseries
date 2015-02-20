@@ -36,7 +36,7 @@ describe Puppet::Type.type(:netapp_e_network_interface) do
     [:macaddr, :storagesystem].each do |param|
       it "#{param} should be a required" do
         resource.delete(param)
-        expect {described_class.new(resource)}.to raise_error Puppet::Error
+        expect { described_class.new(resource) }.to raise_error Puppet::Error
       end
     end
   end
