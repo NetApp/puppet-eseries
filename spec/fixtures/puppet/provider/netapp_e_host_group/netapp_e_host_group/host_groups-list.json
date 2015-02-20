@@ -1,0 +1,11 @@
+[
+  {
+    "storagesystem": "storagesystem",
+    "id": "id",
+    "label": "name",
+    "isSAControlled": false,
+    "clusterRef": "",
+    "protectionInformationCapableAccessMethod": false,
+    "confirmLUNMappingCreation": false
+  }
+]
