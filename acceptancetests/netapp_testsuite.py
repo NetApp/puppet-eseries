@@ -9,18 +9,20 @@ from netapp_helper_class import *
 
 class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
-# TODO make switch to custom manifest authomatic (by new_site_pp -> self.new_site_pp)?
+# TODO make switch to custom manifest automatic (by new_site_pp -> self.new_site_pp)?
 # TODO Review text of debug-messages
 # TODO Make all creation tests create two items at once!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # TODO Tests with long name
-# TODO Verify waternarks
+# TODO Verify watermarks
 # TODO pool_before of pool_list_before? Get it in accordance!!!
-# TODO in helpers - get_system_state(system_id)= {'pools': pools, etc}
+# TODO Add has_error('BANANA') to every puppet-run?
+
+
 
 ##################################### HERE COME REAL TESTING!!! ################################################
 
-    @unittest2.skip('')
-    def test_storage_system(self):
+    #@unittest2.skip('')
+    def test_netapp_storage_system(self):
         """
         Testing of adding netapp_e_storage_system to proxy db
         """
@@ -34,11 +36,12 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Saving stage after cleaning
         stage_after_delete = self.get_system_list()
-        self.log.debug("Current systems (after delete {system_id} system): {systems}".format(system_id=self.first_system_id, systems=stage_after_delete))
+        self.log.debug("Current systems (after delete {system_id} system): {systems}".format(system_id=self.first_system_id,
+                                                                                             systems=stage_after_delete))
 
         # Constructing  custom site.pp and switching on it
-        d = self.construct_dict_for_first_system('WATERMARK_test_storage_system_{0}')
-        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**d))
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())))
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s))
         self.switch_to_custom_manifest(new_site_pp)
 
         # Run 'puppet device' by subprocess
@@ -48,10 +51,10 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         # Assertions
         assert (self.first_system_id not in stage_after_delete) and (self.first_system_id in stage_after_puppet)
 
-########################################################################################################################
+#####################################################################################################################
 
-    @unittest2.skip('')
-    def test_storage_system_without_controllers(self):
+    #@unittest2.skip('')
+    def test_netapp_storage_system_without_controllers(self):
         """
          Test of adding netapp_e_storage_system without controller (and password option)
         """
@@ -68,11 +71,11 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         self.log.debug("Current systems (after delete {system_id} system): {systems}".format(system_id=self.first_system_id, systems=stage_after_delete))
 
         # Constructing  custom site.pp and switching on it
-        d = self.construct_dict_for_first_system('WATERMARK_test_storage_system_without_controllers_ip_{0}')
-        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**d))
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())))
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s))
 
         # Remove pass and controllers section here
-        new_site_pp = self.remove_line_from_multiline_regexp(new_site_pp,'^\s*controller')
+        new_site_pp = self.remove_line_from_multiline_regexp(new_site_pp, '^\s*controller')
         self.switch_to_custom_manifest(new_site_pp)
 
         # Run 'puppet device' by subprocess
@@ -82,10 +85,10 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         # Assertions
         assert (self.first_system_id not in stage_after_puppet) and self.output_errors_has(self.first_system_id)
 
-########################################################################################################################
+#####################################################################################################################
 
-    @unittest2.skip('')
-    def test_storage_system_duplicate_ip_negative(self):
+    #@unittest2.skip('')
+    def test_netapp_storage_system_duplicate_ip_negative(self):
         """
         Test of adding two netapp_e_storage_system's with different names but same ips to proxy db
         """
@@ -96,7 +99,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         self.log.debug("Current systems (before test): {systems}".format(systems=stage_on_start))
 
         # Constructing  custom site.pp and switching on it
-        d1 = {}
+        d1 = dict()
         rand_hash = hex(random.getrandbits(24))[2:-1]
         d1['system_id'] = 'BANANA1_'+rand_hash
         d1['system_ip1'] = '8.8.8.8'
@@ -104,14 +107,14 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         d1['system_pass'] = 'banana'
         d1['ensure'] = 'present'
         self.log.debug("Random hash for watermark: {0}".format(rand_hash))
-        d1['signature'] = 'WATERMARK_test_storage_system_negative_BANANA1_{0}'.format(rand_hash)
-        d2 = {}
+        d1['signature'] = 'WATERMARK_{1}_BANANA1_{0}'.format(rand_hash, self.case_short_name(self.id()))
+        d2 = dict()
         d2['system_id'] = 'BANANA2_'+rand_hash
         d2['system_ip1'] = '8.8.8.8'
         d2['system_ip2'] = '8.8.4.4'
         d2['system_pass'] = 'banana'
         d2['ensure'] = 'present'
-        d2['signature'] = 'WATERMARK_test_storage_system_negative_BANANA2_{0}'.format(rand_hash)
+        d2['signature'] = 'WATERMARK_{1}_BANANA2_{0}'.format(rand_hash, self.case_short_name(self.id()))
         new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**d1) +
                                                  self.manifest_storage_system_section.format(**d2))
         self.switch_to_custom_manifest(new_site_pp)
@@ -129,10 +132,10 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
                          'BANANA2' in stage_after_puppet or
                          self.output_errors_has_not('BANANA2'))
 
-########################################################################################################################
+#####################################################################################################################
 
-    @unittest2.skip('')
-    def test_storage_system_duplicate_name_negative(self):
+    #@unittest2.skip('')
+    def test_netapp_storage_system_duplicate_name_negative(self):
         """
         Test of adding two netapp_e_storage_system's with same names to proxy db
         """
@@ -148,9 +151,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
                   system_ip2='8.8.4.4',
                   system_pass='banana',
                   ensure='present',
-                  signature='WATERMARK_test_storage_system_negative_BANANA_{0}'.format(rand_hash),
-                  )
-        self.log.debug("Random hash for watermark: {0}".format(rand_hash))
+                  signature='WATERMARK_{1}_BANANA_{0}'.format(rand_hash, self.case_short_name(self.id())))
 
         d2 = dict()
         d2['system_id'] = 'BANANA_'+rand_hash
@@ -158,8 +159,8 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         d2['system_ip2'] = '10.20.20.2'
         d2['system_pass'] = 'banana'
         d2['ensure'] = 'present'
-        d2['signature'] = 'ANOTHER_WATERMARK_test_storage_system_negative_BANANA_{0}'.format(rand_hash)
-        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**d1)+
+        d2['signature'] = 'ANOTHER_WATERMARK_{1}_BANANA_{0}'.format(rand_hash, self.case_short_name(self.id()))
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**d1) +
                                                  self.manifest_storage_system_section.format(**d2))
         self.switch_to_custom_manifest(new_site_pp)
 
@@ -174,10 +175,10 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         # Assertions
         assert self.output_errors_has('BANANA_'+rand_hash) and 'BANANA_'+rand_hash not in stage_after_puppet
 
-########################################################################################################################
+#####################################################################################################################
 
-    @unittest2.skip('')
-    def test_storage_system_ensure_absent(self):
+    #@unittest2.skip('')
+    def test_netapp_storage_system_ensure_absent(self):
         """
         Test of removing netapp_e_storage_system from  proxy db
         """
@@ -189,18 +190,16 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         self.rid_all_BANANAs()
 
         # Constructing  custom site.pp and switching on it (first time)
-        d={}
+        d = dict()
         rand_hash = hex(random.getrandbits(24))[2:-1]
         d['system_id'] = 'BANANA_'+rand_hash
         d['system_ip1'] = '8.8.8.8'
         d['system_ip2'] = '8.8.4.4'
         d['system_pass'] = 'banana'
         d['ensure'] = 'present'
-        self.log.debug("Random hash for watermark: {0}".format(rand_hash))
-        d['signature'] = 'WATERMARK_test_storage_system_ensure_{0}'.format(rand_hash)
+        d['signature'] = 'WATERMARK_{1}_BANANA_{0}'.format(rand_hash, self.case_short_name(self.id()))
         new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**d))
         self.switch_to_custom_manifest(new_site_pp)
-
 
         # Run 'puppet device' by subprocess (first time)
         stage_after_puppet_ensure_present = self.run_puppet_device(verbose=False)
@@ -209,7 +208,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         # Constructing custom site.pp and switching on it (second time)
         rand_hash = hex(random.getrandbits(24))[2:-1]
         d['ensure'] = 'absent'
-        d['signature'] = 'WATERMARK_test_storage_system_ensure_{0}'.format(rand_hash)
+        d['signature'] = 'WATERMARK_{1}_BANANA_{0}'.format(rand_hash, self.case_short_name(self.id()))
         new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**d))
         self.switch_to_custom_manifest(new_site_pp)
 
@@ -221,12 +220,13 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         self.rid_all_BANANAs()
 
         # Assertions
-        assert (d['system_id'] in stage_after_puppet_ensure_present) and (d['system_id'] not in stage_after_puppet_ensure_absent)
+        assert d['system_id'] in stage_after_puppet_ensure_present and \
+               d['system_id'] not in stage_after_puppet_ensure_absent
 
-########################################################################################################################
+#####################################################################################################################
 
-    @unittest2.skip('')
-    def test_storage_system_ensure_absent_invalid_ip_negative(self):
+    #@unittest2.skip('')
+    def test_netapp_storage_system_ensure_absent_invalid_ip_negative(self):
         """
         Test of removing  netapp_e_storage_system with correct names but different ips from proxy db
         """
@@ -243,8 +243,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         d['system_ip2'] = '11.11.11.11'
         d['system_pass'] = 'banana'
         d['ensure'] = 'present'
-        self.log.debug("Random hash for watermark: {0}".format(rand_hash))
-        d['signature'] = 'WATERMARK_storage_system_ensure_absent_invalid_ip_negative_BANANA_{0}'.format(rand_hash)
+        d['signature'] = 'WATERMARK_{1}_BANANA_{0}'.format(rand_hash, self.case_short_name(self.id()))
         new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**d))
         self.switch_to_custom_manifest(new_site_pp)
 
@@ -256,8 +255,8 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         d['system_ip1'] = '12.12.12.12'
         d['system_ip2'] = '13.13.13.13'
         d['ensure'] = 'absent'
-        d['signature'] = 'WATERMARK_storage_system_ensure_absent_invalid_ip_negative_{0}'.format(rand_hash)
-        new_site_pp=self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**d))
+        d['signature'] = 'WATERMARK_{1}_BANANA_{0}'.format(rand_hash, self.case_short_name(self.id()))
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**d))
         self.switch_to_custom_manifest(new_site_pp)
 
         # Run 'puppet device' by subprocess (second time)
@@ -272,7 +271,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
 #####################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_netapp_password_set_negative(self):
         """
         Test of setting initially invalid password
@@ -280,7 +279,6 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         1. Check if the first system is present on storage (if no, try to add it)
         2. Make custom manifest
         3. Watch errors
-
         """
 
         self.restore_first_system_by_REST()
@@ -291,10 +289,10 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Constructing  custom site.pp and switching on it
         rand_hash = hex(random.getrandbits(24))[2:-1]
-        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_password_set_negative_{0}', rand_hash)
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())),
+                                                 rand_hash)
         s['system_pass'] = 'ABSOLUTELY_WRONG_PASSWORD_'+rand_hash
-
-        p={}
+        p = dict()
         p['system_id'] = self.first_system_id
         p['current_password'] = self.first_system_id
         p['new_password'] = 'THIS_PASSWORD_WILL_NEVER_BE_SET_UP'
@@ -302,7 +300,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         p['force'] = 'true'
 
         new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
-        self.manifest_storage_password_section.format(**p))
+                                                 self.manifest_storage_password_section.format(**p))
 
         self.switch_to_custom_manifest(new_site_pp)
 
@@ -315,7 +313,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
 #####################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_netapp_password_set(self):
         """
         Test of setting valid password
@@ -326,18 +324,18 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         self.log.debug("Current systems (before test): {systems}".format(systems=stage_on_start))
 
         # Constructing  custom site.pp and switching on it
-        s={}
-        rand_hash=hex(random.getrandbits(24))[2:-1]
+        s = dict()
+        rand_hash = hex(random.getrandbits(24))[2:-1]
         s['system_id'] = self.first_system_id
         s['system_ip1'] = self.first_system_ip1
         s['system_ip2'] = self.first_system_ip2
         s['ensure'] = 'present'
         s['system_pass'] = self.first_system_pass
-        s['signature'] = 'WATERMARK_test_netapp_password_set_{0}'.format(rand_hash)
-        p={}
+        s['signature'] = 'WATERMARK_{1}_{0}'.format(rand_hash, self.case_short_name(self.id()))
+        p = dict()
         p['system_id'] = self.first_system_id
-        p['current_password']= self.first_system_pass
-        p['new_password']= self.first_system_test_pass
+        p['current_password'] = self.first_system_pass
+        p['new_password'] = self.first_system_test_pass
         p['admin'] = 'true'
         p['force'] = 'true'
         new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
@@ -358,8 +356,8 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
             p['current_password'] = self.first_system_test_pass
             p['new_password'] = self.first_system_pass
 
-            new_site_pp=self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
-                                                   self.manifest_storage_password_section.format(**p))
+            new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
+                                                     self.manifest_storage_password_section.format(**p))
 
             self.switch_to_custom_manifest(new_site_pp)
 
@@ -375,7 +373,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
 #####################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_netapp_interface_set(self):
         """
         Test of change ip address on controller
@@ -412,9 +410,8 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
                              if i['linkStatus'].strip() == 'up' and i['ipv4Enabled']][0]
 
         # Constructing  custom site.pp and switching on it
-        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_interface_set_{0}')
-
-        i = {}
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())))
+        i = dict()
         i['macAddr'] = testing_interface['macAddr']
         i['system_id'] = self.first_system_id
         i['ipv4'] = 'true'
@@ -437,7 +434,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         self.log.debug(message.format(self.first_system_id, changed_ip_list))
 
         #Revert ip back
-        i={}
+        i = dict()
         i['macAddr'] = testing_interface['macAddr']
         i['system_id'] = self.first_system_id
         i['ipv4'] = 'true'
@@ -446,7 +443,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         i['ipv4gateway'] = testing_interface['ipv4GatewayAddress']
         i['ipv4mask'] = testing_interface['ipv4SubnetMask']
         i['remoteaccess'] = 'true'
-        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s)+
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
                                                  self.manifest_storage_interface_section.format(**i))
         self.switch_to_custom_manifest(new_site_pp)
 
@@ -467,7 +464,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
 #####################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_netapp_interface_set_wrong_mac_negative(self):
         """
         Test of change ip address on controller with wrong mac addr in params
@@ -501,12 +498,11 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Save initial state of first interface from first system
         testing_interface = [i for i in generic_get('ethernet-interfaces', array_id=self.first_system_id)
-                      if i['linkStatus'].strip() == 'up' and i['ipv4Enabled']][0]
+                             if i['linkStatus'].strip() == 'up' and i['ipv4Enabled']][0]
 
         # Constructing  custom site.pp and switching on it
-        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_interface_set_wrong_mac_negative_{0}')
-
-        i = {}
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())))
+        i = dict()
         test_mac = self.get_random_mac()
         i['macAddr'] = test_mac
         i['system_id'] = self.first_system_id
@@ -516,7 +512,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         i['ipv4gateway'] = testing_interface['ipv4GatewayAddress']
         i['ipv4mask'] = testing_interface['ipv4SubnetMask']
         i['remoteaccess'] = 'true'
-        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s)+
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
                                                  self.manifest_storage_interface_section.format(**i))
         self.switch_to_custom_manifest(new_site_pp)
 
@@ -533,7 +529,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
 #####################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_netapp_interface_set_wrong_system_negative(self):
         """
         Test of change ip address on controller with wrong system id in params
@@ -571,8 +567,8 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Constructing  custom site.pp and switching on it
         rand_hash = hex(random.getrandbits(24))[2:-1]
-        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_interface_set_wrong_system_negative_{0}', rand_hash)
-
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())),
+                                                 rand_hash)
         i = dict(macAddr=testing_interface['macAddr'],
                  system_id='BANANA_{0}'.format(rand_hash),
                  ipv4='true',
@@ -604,7 +600,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
 #####################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_netapp_storage_pool_create_delete(self):
         """
         Test of storage pool creation
@@ -631,7 +627,8 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Constructing  custom site.pp and switching on it
         rand_hash = hex(random.getrandbits(24))[2:-1]
-        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_storage_pool_create_{0}', rand_hash)
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())),
+                                                 rand_hash)
 
         p = dict(pool_id='BANANA_POOL_{0}'.format(rand_hash),
                  ensure='present',
@@ -650,7 +647,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         self.log.debug("(after creating manifest) List of pools: {0}".format(pool_list_after_create))
 
         p['ensure'] = 'absent'
-        s['signature'] = 'WATERMARK_test_netapp_storage_pool_delete_{0}'.format(rand_hash)
+        s['signature'] = 'WATERMARK_{1}_delete_{0}'.format(rand_hash, self.case_short_name(self.id()))
 
         new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
                                                  self.manifest_storage_pool_section.format(**p))
@@ -670,7 +667,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
 #####################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_netapp_simple_volume_create_delete(self):
 
         """
@@ -699,7 +696,8 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Constructing  custom site.pp and switching on it
         rand_hash = hex(random.getrandbits(24))[2:-1]
-        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_simple_volume_create_{0}', rand_hash)
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())),
+                                                 rand_hash)
 
         p = dict(pool_id='BANANA_POOL_{0}'.format(rand_hash),
                  ensure='present',
@@ -725,7 +723,6 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Run 'puppet device' by subprocess
         self.run_puppet_device()
-        self.output_errors_has('BANANA')
 
         pool_list_after_create = [j['label'] for j in generic_get('pools', array_id=self.first_system_id)]
         volume_list_after_create = [j['name'] for j in generic_get('volumes', array_id=self.first_system_id)]
@@ -734,7 +731,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         p['ensure'] = 'absent'
         v['ensure'] = 'absent'
-        s['signature'] = 'WATERMARK_test_netapp_simple_volume_delete_{0}'.format(rand_hash)
+        s['signature'] = 'WATERMARK_{1}_delete_{0}'.format(rand_hash, self.case_short_name(self.id()))
         new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
                                                  self.manifest_storage_pool_section.format(**p) +
                                                  self.manifest_storage_volume_section.format(**v))
@@ -742,7 +739,6 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Run 'puppet device' by subprocess
         self.run_puppet_device()
-        self.output_errors_has('BANANA')
 
         pool_list_after_delete = [j['label'] for j in generic_get('pools', array_id=self.first_system_id)]
         volume_list_after_delete = [j['name'] for j in generic_get('volumes', array_id=self.first_system_id)]
@@ -753,7 +749,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
 #####################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_netapp_thin_volume_create_delete(self):
         """
         Test of creation and deleting simple volume
@@ -783,7 +779,9 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Constructing  custom site.pp and switching on it
         rand_hash = hex(random.getrandbits(24))[2:-1]
-        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_thin_volume_create_{0}', rand_hash)
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())),
+                                                 rand_hash)
+
 
         p = dict(pool_id='BANANA_POOL_{0}'.format(rand_hash),
                  ensure='present',
@@ -815,7 +813,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Run 'puppet device' by subprocess
         self.run_puppet_device()
-        
+
         pool_list_after_create = [j['label'] for j in generic_get('pools', array_id=self.first_system_id)]
         volume_list_after_create = [j['name'] for j in generic_get('thin_volumes', array_id=self.first_system_id)]
         self.log.debug("(after creating manifest) List of pools: {0}".format(pool_list_after_create))
@@ -823,7 +821,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         p['ensure'] = 'absent'
         v['ensure'] = 'absent'
-        s['signature'] = 'WATERMARK_test_netapp_thin_volume_delete_{0}'.format(rand_hash)
+        s['signature'] = 'WATERMARK_{1}_delete_{0}'.format(rand_hash, self.case_short_name(self.id()))
         new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
                                                  self.manifest_storage_pool_section.format(**p) +
                                                  self.manifest_storage_volume_section.format(**v) +
@@ -845,7 +843,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
 #####################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_netapp_volume_copy_create_delete(self):
         """
         Test of volume copy
@@ -878,7 +876,9 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Constructing  custom site.pp and switching on it
         rand_hash = hex(random.getrandbits(24))[2:-1]
-        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_volume_copy_create_delete_{0}', rand_hash)
+
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())),
+                                                 rand_hash)
 
         p = dict(pool_id='BANANA_POOL_{0}'.format(rand_hash),
                  ensure='present',
@@ -925,7 +925,6 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Run 'puppet device' by subprocess
         self.run_puppet_device()
-        self.output_errors_has('BANANA')
 
         pool_list_after_create = [j['label'] for j in generic_get('pools', array_id=self.first_system_id)]
         volume_list_after_create = [j['name'] for j in generic_get('volumes', array_id=self.first_system_id)]
@@ -955,7 +954,6 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Run 'puppet device' by subprocess
         self.run_puppet_device()
-        self.output_errors_has('BANANA')
 
         pool_list_after_delete = [j['label'] for j in generic_get('pools', array_id=self.first_system_id)]
         volume_list_after_delete = [j['name'] for j in generic_get('thin_volumes', array_id=self.first_system_id)]
@@ -966,11 +964,11 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Assertions
         assert set(volume_copies_list_after_create) != set(volume_copies_list_before) and \
-            'BANANA_COPY_{0}'.format(rand_hash) not in volume_copies_list_after_delete
+               'BANANA_COPY_{0}'.format(rand_hash) not in volume_copies_list_after_delete
 
 #####################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_netapp_hostgroup_empty_create_delete(self):
 
         """
@@ -996,7 +994,8 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Constructing  custom site.pp and switching on it
         rand_hash = hex(random.getrandbits(24))[2:-1]
-        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_hostgroup_empty_create_delete_{0}', rand_hash)
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())),
+                                                 rand_hash)
 
         hg = dict(hostgroup_id='BANANA_HOSTGROUP_{0}'.format(rand_hash),
                   ensure='present',
@@ -1008,10 +1007,9 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Run 'puppet device' by subprocess
         self.run_puppet_device()
-        self.output_errors_has('BANANA')
 
         hostgroups_after_create = [j['id'] for j in generic_get('host_groups', array_id=self.first_system_id)]
-        hostgroups_after_create_for_print = ["'{1}'({0})".format(j['id'],j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
+        hostgroups_after_create_for_print = ["'{1}'({0})".format(j['id'], j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
         self.log.debug("(after creation manifest) List of hostgroups: {0}".format(hostgroups_after_create_for_print))
 
         # Remove
@@ -1022,7 +1020,6 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Run 'puppet device' by subprocess
         self.run_puppet_device()
-        self.output_errors_has('BANANA')
 
         hostgroups_after_delete = [j['id'] for j in generic_get('host_groups', array_id=self.first_system_id)]
         hostgroups_after_delete_for_print = ["'{1}'({0})".format(j['id'], j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
@@ -1030,11 +1027,11 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Assertions
         assert set(hostgroups_before) != set(hostgroups_after_create) and \
-            'BANANA_HOSTGROUP_{0}'.format(rand_hash) not in hostgroups_after_delete
+               'BANANA_HOSTGROUP_{0}'.format(rand_hash) not in hostgroups_after_delete
 
 #####################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_netapp_hostgroup_delete_negative(self):
         """
         Test of non-existent hostgroup deleting
@@ -1053,7 +1050,9 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Constructing  custom site.pp and switching on it
         rand_hash = hex(random.getrandbits(24))[2:-1]
-        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_hostgroup_empty_create_delete_{0}', rand_hash)
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())),
+                                                 rand_hash)
+
         hg = dict(hostgroup_id='BANANA_HOSTGROUP_{0}'.format(rand_hash),
                   ensure='absent',
                   system_id=self.first_system_id)
@@ -1063,10 +1062,9 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Run 'puppet device' by subprocess
         self.run_puppet_device()
-        self.output_errors_has('BANANA')
 
         hostgroups_after_create = [j['id'] for j in generic_get('host_groups', array_id=self.first_system_id)]
-        hostgroups_after_create_for_print = ["'{1}'({0})".format(j['id'],j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
+        hostgroups_after_create_for_print = ["'{1}'({0})".format(j['id'], j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
         self.log.debug("(after creation manifest) List of hostgroups: {0}".format(hostgroups_after_create_for_print))
 
         #TODO Assertions
@@ -1074,7 +1072,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
 #####################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_netapp_hostgroup_duplicate_negative(self):
         """
         Test of duplicate hostgroup creating
@@ -1094,7 +1092,9 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Constructing  custom site.pp and switching on it
         rand_hash = hex(random.getrandbits(24))[2:-1]
-        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_hostgroup_empty_create_delete_{0}', rand_hash)
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())),
+                                                 rand_hash)
+
         hg1 = dict(hostgroup_id='BANANA_HOSTGROUP_DUPLICATE_{0}'.format(rand_hash),
                   ensure='present',
                   system_id=self.first_system_id)
@@ -1108,7 +1108,6 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Run 'puppet device' by subprocess
         self.run_puppet_device()
-        self.output_errors_has('BANANA')
 
         hostgroups_after_create = [j['id'] for j in generic_get('host_groups', array_id=self.first_system_id)]
         hostgroups_after_create_for_print = ["'{1}'({0})".format(j['id'],j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
@@ -1119,7 +1118,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
 #####################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_netapp_host_create_delete(self):
         """
         Test of  host creation/deletion
@@ -1146,7 +1145,9 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Constructing  custom site.pp and switching on it
         rand_hash = hex(random.getrandbits(24))[2:-1]
-        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_host_create_delete_{0}', rand_hash)
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())),
+                                                 rand_hash)
+
         hg = dict(hostgroup_id='BANANA_HOSTGROUP_{0}'.format(rand_hash),
                   ensure='present',
                   system_id=self.first_system_id)
@@ -1173,7 +1174,6 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Run 'puppet device' by subprocess
         self.run_puppet_device()
-        self.output_errors_has('BANANA')
 
         hostgroups_after_create_for_print = ["'{1}'({0})".format(j['id'],j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
         hosts_after_create = [j['label'] for j in generic_get('hosts', array_id=self.first_system_id)]
@@ -1190,7 +1190,6 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Run 'puppet device' by subprocess
         self.run_puppet_device()
-        self.output_errors_has('BANANA')
 
         hostgroups_after_delete_for_print = ["'{1}'({0})".format(j['id'],j['label']) for j in generic_get('host_groups', array_id=self.first_system_id)]
         hosts_after_delete = [j['label'] for j in generic_get('hosts', array_id=self.first_system_id)]
@@ -1212,7 +1211,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
 #####################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_netapp_snapshot_group_create_delete(self):
         """
         Test of creation/deletion snapshot_group
@@ -1228,7 +1227,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         self.remove_BANANA_objects_by_REST(self.first_system_id)
 
         # Saving starting stage
-        stage_on_start = self.get_system_state(self.first_system_id)        
+        stage_on_start = self.get_system_state(self.first_system_id)
 
         self.log.debug("Current systems (before test): {0}".format(stage_on_start['storage_systems']))
         self.log.debug("(before manifests) List of pools: {0}".format(stage_on_start['pools']))
@@ -1240,7 +1239,9 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         free_disks = self.get_free_disk(self.first_system_id, number=2)
         self.log.debug("Select free disks on '{1}': {0}".format(free_disks, self.first_system_id))
         rand_hash = hex(random.getrandbits(24))[2:-1]
-        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_snapshot_group_create_delete_{0}', rand_hash)
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())),
+                                                 rand_hash)
+
         p = dict(pool_id='BANANA_POOL_{0}'.format(rand_hash),
                  ensure='present',
                  system_id=self.first_system_id,
@@ -1273,7 +1274,6 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         # Run 'puppet device' by subprocess
         self.run_puppet_device()
-        self.output_errors_has('BANANA')
 
         stage_after_create = self.get_system_state(self.first_system_id)
         self.log.debug("(after creation manifests) List of pools: {0}".format(stage_after_create['pools']))
@@ -1294,8 +1294,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         self.switch_to_custom_manifest(new_site_pp)
 
         # Run 'puppet device' by subprocess
-        self.run_puppet_device(verbose=True)
-        self.output_errors_has('BANANA')
+        self.run_puppet_device()
 
         stage_after_delete = self.get_system_state(self.first_system_id)
         self.log.debug("(after deletion manifests) List of pools: {0}".format(stage_after_delete['pools']))
@@ -1308,7 +1307,6 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         #Assertions
         assert sg['snapshot_group_id'] in stage_after_create['snapshot_groups'] \
             and sg['snapshot_group_id'] not in stage_after_delete['snapshot_groups']
-
 
 #####################################################################################################################
 
@@ -1333,12 +1331,13 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         self.log.debug("(before manifests) List of snapshot groups: {0}".format(stage_on_start['snapshot_groups_for_print']))
         self.log.debug("(before manifests) List of snapshot images: {0}".format(stage_on_start['snapshots_for_print']))
 
-
         # Constructing  custom site.pp and switching on it
         free_disks = self.get_free_disk(self.first_system_id, number=2)
         self.log.debug("Select free disks on '{1}': {0}".format(free_disks, self.first_system_id))
         rand_hash = hex(random.getrandbits(24))[2:-1]
-        s = self.construct_dict_for_first_system('WATERMARK_test_netapp_snapshot_image_create_delete_{0}', rand_hash)
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())),
+                                                 rand_hash)
+
         p = dict(pool_id='BANANA_POOL_{0}'.format(rand_hash),
                  ensure='present',
                  system_id=self.first_system_id,
@@ -1373,10 +1372,8 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
                                                  'Netapp_e_storage_pool <| |> -> Netapp_e_volume <| |> -> Netapp_e_snapshot_group  <| |>')
         self.switch_to_custom_manifest(new_site_pp)
 
-
         # Run 'puppet device' by subprocess
         self.run_puppet_device()
-        self.output_errors_has('BANANA')
 
         stage_after_create = self.get_system_state(self.first_system_id)
         self.log.debug("(after creation manifests) List of pools: {0}".format(stage_after_create['pools']))
@@ -1400,12 +1397,150 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
 #####################################################################################################################
 
-    @unittest2.skip('')
+    #@unittest2.skip('')
     def test_netapp_snapshot_volume_create_delete(self):
         """
         Test of snapshot volume creation/deletion
-
+        1. Create pool->volume->snapshotgroup->snapsot_image
+        2. Get id of created snapshot image
+        3. Create snapshot volume
         """
+        # Preparation and cleaning up of storage
+        self.restore_first_system_by_REST()
+        self.remove_BANANA_objects_by_REST(self.first_system_id)
+
+        # Saving starting stage
+        stage_on_start = self.get_system_state(self.first_system_id)
+        self.log.debug("Current systems (before test): {0}".format(stage_on_start['storage_systems']))
+        self.log.debug("(before manifests) List of pools: {0}".format(stage_on_start['pools']))
+        self.log.debug("(before manifests) List of volumes: {0}".format(stage_on_start['volumes']))
+        self.log.debug("(before manifests) List of thin volumes: {0}".format(stage_on_start['thin_volumes']))
+        self.log.debug("(before manifests) List of snapshot groups: {0}".format(stage_on_start['snapshot_groups_for_print']))
+        self.log.debug("(before manifests) List of snapshot images: {0}".format(stage_on_start['snapshots_for_print']))
+        self.log.debug("(before manifests) List of snapshot volumes: {0}".format(stage_on_start['snapshot_volumes']))
+
+        # Constructing  custom site.pp and switching on it (CREATE SNAPSHOT IMAGE)
+        free_disks = self.get_free_disk(self.first_system_id, number=2)
+        self.log.debug("Select free disks on '{1}': {0}".format(free_disks, self.first_system_id))
+        rand_hash = hex(random.getrandbits(24))[2:-1]
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())),
+                                                 rand_hash)
+
+        p = dict(pool_id='BANANA_POOL_{0}'.format(rand_hash),
+                 ensure='present',
+                 system_id=self.first_system_id,
+                 raidlevel='raid0',
+                 diskids="{0}".format(free_disks))
+        v = dict(volume_id='BANANA_VOLUME_{0}'.format(rand_hash),
+                 ensure='present',
+                 system_id=self.first_system_id,
+                 size='3',
+                 pool_id=p['pool_id'],
+                 sizeunit='gb',
+                 segsize='512',
+                 thin='false')
+        sg = dict(snapshot_group_id='BANANA_SNAPSHOT_GROUP_{0}'.format(rand_hash),
+                  ensure='present',
+                  system_id=self.first_system_id,
+                  pool_id=p['pool_id'],
+                  volume_id=v['volume_id'],
+                  repositorysize='30',
+                  warnthreshold='75',
+                  policy='purgepit',  # ['unknown', 'failbasewrites', 'purgepit', '__UNDEFINED']
+                  limit='7',
+                  )
+        i = dict(snapshot_image_id='BANANA_IMAGE_{0}'.format(rand_hash),
+                 snapshot_group_id=sg['snapshot_group_id'],
+                 system_id=self.first_system_id)
+
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
+                                                 self.manifest_storage_pool_section.format(**p) +
+                                                 self.manifest_storage_volume_section.format(**v) +
+                                                 self.manifest_storage_snapshot_group_section.format(**sg) +
+                                                 self.manifest_storage_snapshot_image_section.format(**i) +
+                                                 'Netapp_e_storage_pool <| |> -> Netapp_e_volume <| |> -> Netapp_e_snapshot_group  <| |> -> Netapp_e_snapshot_image <| |>')
+        self.switch_to_custom_manifest(new_site_pp)
+
+        # Run 'puppet device' by subprocess
+        self.run_puppet_device()
+
+        stage_after_create_snapshot_image = self.get_system_state(self.first_system_id)
+        self.log.debug("(after creation snapshot_image manifests) List of pools: {0}".format(stage_after_create_snapshot_image['pools']))
+        self.log.debug("(after creation snapshot_image manifests) List of volumes: {0}".format(stage_after_create_snapshot_image['volumes']))
+        self.log.debug("(after creation snapshot_image manifests) List of thin volumes: {0}".format(stage_after_create_snapshot_image['thin_volumes']))
+        self.log.debug("(after creation snapshot_image manifests) List of snapshot groups: {0}".format(stage_after_create_snapshot_image['snapshot_groups_for_print']))
+        self.log.debug("(after creation snapshot_image manifests) List of snapshot images: {0}".format(stage_after_create_snapshot_image['snapshots_for_print']))
+
+        # Get snapshot image ID
+        image_id = None
+        for i in set(stage_after_create_snapshot_image['snapshots']) - set(stage_on_start['snapshots']):
+            tmp = stage_after_create_snapshot_image['snapshots_for_assertion'][i]
+            if tmp['group'] == sg['snapshot_group_id'] and tmp['volume'] == v['volume_id']:
+                image_id = i
+
+        # Constructing  custom site.pp and switching on it (CREATE SNAPSHOT VOLUME)
+        sv = dict(snapshot_volume_id='BANANA_SNAPSHOT_VOLUME_{0}'.format(rand_hash),
+                  ensure='present',
+                  system_id=self.first_system_id,
+                  pool_id=p['pool_id'],
+                  image_id=image_id,
+                  viewmode='readWrite',
+                  repositorysize='10',
+                  fullthreshold='14',
+                  )
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
+                                                 self.manifest_storage_pool_section.format(**p) +
+                                                 self.manifest_storage_snapshot_volume_section.format(**sv) +
+                                                 'Netapp_e_storage_system <| |> -> Netapp_e_storage_pool <| |> -> Netapp_e_snapshot_volume <| |>')
+        self.switch_to_custom_manifest(new_site_pp)
+
+        # Run 'puppet device' by subprocess
+        self.run_puppet_device()
+
+        stage_after_create_snapshot_volume = self.get_system_state(self.first_system_id)
+        self.log.debug("(after creation snapshot_volume manifests) List of pools: {0}".format(stage_after_create_snapshot_volume['pools']))
+        self.log.debug("(after creation snapshot_volume manifests) List of volumes: {0}".format(stage_after_create_snapshot_volume['volumes']))
+        self.log.debug("(after creation snapshot_volume manifests) List of thin volumes: {0}".format(stage_after_create_snapshot_volume['thin_volumes']))
+        self.log.debug("(after creation snapshot_volume manifests) List of snapshot groups: {0}".format(stage_after_create_snapshot_volume['snapshot_groups_for_print']))
+        self.log.debug("(after creation snapshot_volume manifests) List of snapshot images: {0}".format(stage_after_create_snapshot_volume['snapshots_for_print']))
+        self.log.debug("(after creation snapshot_volume manifests) List of snapshot volumes: {0}".format(stage_after_create_snapshot_volume['snapshot_volumes']))
+
+        # Constructing  custom site.pp and switching on it (DELETE SNAPSHOT VOLUME)
+        sv['ensure'] = 'absent'
+        p['ensure'] = 'absent'
+        sg['ensure'] = 'absent'
+        v['ensure'] = 'absent'
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
+                                                 self.manifest_storage_pool_section.format(**p) +
+                                                 self.manifest_storage_volume_section.format(**v) +
+                                                 self.manifest_storage_snapshot_group_section.format(**sg) +
+                                                 self.manifest_storage_snapshot_volume_section.format(**sv) +
+                                                 'Netapp_e_snapshot_volume  <| |> -> Netapp_e_snapshot_group <| |> -> Netapp_e_volume <| |> ->  Netapp_e_storage_pool <| |>  -> Netapp_e_storage_system <| |>')
+        new_site_pp = self.remove_line_from_multiline_regexp(new_site_pp, 'require')
+        self.switch_to_custom_manifest(new_site_pp)
+
+        # Run 'puppet device' by subprocess
+        self.run_puppet_device()
+
+        stage_after_delete_snapshot_volume = self.get_system_state(self.first_system_id)
+        self.log.debug("(after deletion snapshot_volume manifests) List of pools: {0}".format(stage_after_delete_snapshot_volume['pools']))
+        self.log.debug("(after deletion snapshot_volume manifests) List of volumes: {0}".format(stage_after_delete_snapshot_volume['volumes']))
+        self.log.debug("(after deletion snapshot_volume manifests) List of thin volumes: {0}".format(stage_after_delete_snapshot_volume['thin_volumes']))
+        self.log.debug("(after deletion snapshot_volume manifests) List of snapshot groups: {0}".format(stage_after_delete_snapshot_volume['snapshot_groups_for_print']))
+        self.log.debug("(after deletion snapshot_volume manifests) List of snapshot images: {0}".format(stage_after_delete_snapshot_volume['snapshots_for_print']))
+        self.log.debug("(after deletion snapshot_volume manifests) List of snapshot volumes: {0}".format(stage_after_delete_snapshot_volume['snapshot_volumes']))
+
+        self.remove_BANANA_objects_by_REST(self.first_system_id)
+
+        #Assertions
+        assert 'BANANA_SNAPSHOT_VOLUME_{0}'.format(rand_hash) in stage_after_create_snapshot_volume['snapshot_volumes'] and \
+               'BANANA_SNAPSHOT_VOLUME_{0}'.format(rand_hash) not in stage_after_delete_snapshot_volume['snapshot_volumes']
+
+#####################################################################################################################
+
+    #@unittest2.skip('')
+    def test_netapp_map_create_delete(self):
+
         # Preparation and cleaning up of storage
         self.restore_first_system_by_REST()
         self.remove_BANANA_objects_by_REST(self.first_system_id)
@@ -1419,12 +1554,70 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         self.log.debug("(before manifests) List of thin volumes: {0}".format(stage_on_start['thin_volumes']))
         self.log.debug("(before manifests) List of snapshot groups: {0}".format(stage_on_start['snapshot_groups_for_print']))
         self.log.debug("(before manifests) List of snapshot images: {0}".format(stage_on_start['snapshots_for_print']))
+        self.log.debug("(before manifests) List of maps(LUN): {0}".format(stage_on_start['volume_mappings']))
 
         # Constructing  custom site.pp and switching on it
+        free_disks = self.get_free_disk(self.first_system_id, number=2)
+        self.log.debug("Select free disks on '{1}': {0}".format(free_disks, self.first_system_id))
+        rand_hash = hex(random.getrandbits(24))[2:-1]
+        s = self.construct_dict_for_first_system('WATERMARK_{0}_{{0}}'.format(self.case_short_name(self.id())),
+                                                 rand_hash)
+        p = dict(pool_id='BANANA_POOL_{0}'.format(rand_hash),
+                 ensure='present',
+                 system_id=self.first_system_id,
+                 raidlevel='raid0',
+                 diskids="{0}".format(free_disks))
+        v = dict(volume_id='BANANA_VOLUME_ONE_{0}'.format(rand_hash),
+                 ensure='present',
+                 system_id=self.first_system_id,
+                 size='3',
+                 pool_id=p['pool_id'],
+                 sizeunit='gb',
+                 segsize='512',
+                 thin='false')
+        port_types = [ 'iscsi', ]# ['notImplemented', 'scsi', 'fc', 'sata', 'sas', 'iscsi', 'ib', 'fcoe', '__UNDEFINED']
+        port = "{{type => '{type}', port => '{port}', label => '{label}'}}".format(type=random.choice(port_types),
+                                                                                   port='iqn.1998-05.com.osx:cd1234abcdef',
+                                                                                   label='BANANA_PORT_ONE_{0}'.format(rand_hash))
+        hg = dict(hostgroup_id='BANANA_HOSTGROUP_{0}'.format(rand_hash),
+                  ensure='present',
+                  system_id=self.first_system_id)
+        h = dict(host_id='BANANA_HOST_{0}'.format(rand_hash),
+                 ensure='present',
+                 typeindex=random.choice([i['index'] for i in generic_get('host_types', array_id=self.first_system_id)]),
+                 system_id=self.first_system_id,
+                 hostgroup_id=hg['hostgroup_id'],
+                 ports="[{0},]".format(port))
+        m = dict(map_id='BANANA_MAP_{0}'.format(rand_hash),
+                 ensure='present',
+                 system_id=self.first_system_id,
+                 source_id=v['volume_id'],
+                 target_id=h['host_id'],
+                 lun='10',
+                 type='host')
+
+        new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
+                                                 self.manifest_storage_pool_section.format(**p) +
+                                                 self.manifest_storage_volume_section.format(**v) +
+                                                 self.manifest_storage_hostgroup_section.format(**hg) +
+                                                 self.manifest_storage_host_section.format(**h) +
+                                                 self.manifest_storage_map_section.format(**m) +
+                                                 'Netapp_e_storage_pool <| |> -> Netapp_e_volume <| |> -> Netapp_e_host_group <| |>  -> Netapp_e_host <| |> -> Netapp_e_map <| |>')
+        self.switch_to_custom_manifest(new_site_pp)
 
         # Run 'puppet device' by subprocess
-        #self.run_puppet_device(verbose=True)
-        #self.output_errors_has('BANANA')
+        self.run_puppet_device()
+
+        stage_after_create_map = self.get_system_state(self.first_system_id)
+        self.log.debug("(after creation map manifests) List of pools: {0}".format(stage_after_create_map['pools']))
+        self.log.debug("(after creation map manifests) List of volumes: {0}".format(stage_after_create_map['volumes']))
+        self.log.debug("(after creation map manifests) List of thin volumes: {0}".format(stage_after_create_map['thin_volumes']))
+        self.log.debug("(after creation map manifests) List of snapshot groups: {0}".format(stage_after_create_map['snapshot_groups_for_print']))
+        self.log.debug("(after creation map manifests) List of snapshot images: {0}".format(stage_after_create_map['snapshots_for_print']))
+        self.log.debug("(after creation map manifests) List of maps(LUN): {0}".format(stage_after_create_map['volume_mappings']))
+
+
+        self.remove_BANANA_objects_by_REST(self.first_system_id)
 
         #Assertions
         assert True

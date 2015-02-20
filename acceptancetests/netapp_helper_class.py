@@ -161,7 +161,6 @@ netapp_e_network_interface {{"{macAddr}":
        repeat   => 60,
     }}
 
-
     netapp_e_snapshot_image {{'{snapshot_image_id}':
        group         => '{snapshot_group_id}',
        storagesystem => '{system_id}',
@@ -169,15 +168,39 @@ netapp_e_network_interface {{"{macAddr}":
        schedule      => 'hourly',
     }}
 '''
+
+    manifest_storage_snapshot_volume_section = \
+'''
+    netapp_e_snapshot_volume {{'{snapshot_volume_id}':
+      ensure         => {ensure},
+      storagesystem  => '{system_id}',
+      storagepool    => '{pool_id}',
+      imageid        => '{image_id}',
+      viewmode       => '{viewmode}',
+      repositorysize => {repositorysize},
+      fullthreshold  => {fullthreshold},
+    }}
+'''
+    manifest_storage_map_section = \
+'''
+    netapp_e_map {{'{map_id}':
+      ensure        => {ensure},
+      storagesystem => '{system_id}',
+      lun           => {lun},
+      source        => '{source_id}',
+      target        => '{target_id}',
+      type          => '{type}'
+    }}
+'''
 ########################################################################################################################
 
     @classmethod
     def switch_to_custom_manifest(cls, manifest_body):
-        '''
+        """
         Helper to overwrite original manifest by custom manifest
         :param manifest_body:
         :return: None
-        '''
+        """
 
         with open("/var/tmp/netapp_test_suite_tmp_site.pp", 'w') as temp_site_pp:
             temp_site_pp.write(manifest_body)
@@ -221,8 +244,8 @@ netapp_e_network_interface {{"{macAddr}":
     def output_errors_has_not(cls, pattern):
 
         for i in cls.parse_multiline(cls.output):
-            if i.find('Error')>-1:
-                if i.find(pattern)>-1:
+            if i.find('Error') > -1:
+                if i.find(pattern) > -1:
                     cls.log.debug("Line from command output contains {pattern}:\n>>>{line}\n".format(pattern=pattern, line=i))
                     return False
 
@@ -244,7 +267,7 @@ netapp_e_network_interface {{"{macAddr}":
 ########################################################################################################################
 
     @classmethod
-    def run_puppet_device(cls, verbose=False):
+    def run_puppet_device(cls, verbose=configuration.verbose_output):
         '''
         Helper to run puppet device by subprocess
         '''
@@ -263,6 +286,8 @@ netapp_e_network_interface {{"{macAddr}":
         if verbose:
             cls.log.debug('Output from puppet command:\n {output}\nReturn code: {returncode}\n'.format(output=cls.output,
                                                                                                        returncode=cls.returncode))
+        else:
+            cls.output_errors_has('BANANA')
 
         # TODO What if we want to see not only systems but their entities????
         return cls.get_system_list()
@@ -345,21 +370,22 @@ netapp_e_network_interface {{"{macAddr}":
     # Construct dictionary for manifest section of first system
     @classmethod
     def construct_dict_for_first_system(cls, signature='BANANA_{0}', rand_hash=hex(random.getrandbits(24))[2:-1]):
-        dict={}
-        dict['system_id'] = cls.first_system_id
-        dict['system_ip1'] = cls.first_system_ip1
-        dict['system_ip2'] = cls.first_system_ip2
-        dict['ensure'] = 'present'
-        dict['system_pass'] = cls.first_system_pass
-        dict['signature'] = signature.format(rand_hash)
 
-        return dict
+        s_dict = dict(system_id=cls.first_system_id,
+                      system_ip1=cls.first_system_ip1,
+                      system_ip2=cls.first_system_ip2,
+                      ensure='present',
+                      system_pass=cls.first_system_pass,
+                      signature=signature.format(rand_hash)
+                      )
+
+        return s_dict
 
 ########################################################################################################################
 
     @classmethod
     def get_free_disk(cls, system_id, except_disks=(), number=1):
-        disks=[]
+        disks = []
         for i in generic_get('drives', array_id=system_id):
             if re.match('^0*$', i['currentVolumeGroupRef']):
                 if i['id'] not in except_disks:
@@ -440,7 +466,7 @@ netapp_e_network_interface {{"{macAddr}":
 
         snapshot_groups = dict((snapshot_group['id'],snapshot_group['label']) for snapshot_group in generic_get('snapshot_groups', array_id=system_id))
         all_volumes = dict((volume['id'],volume['name']) for volume in generic_get('volumes', array_id=system_id))
-        all_volumes.update(dict((thin_volume['id'],thin_volume['name']) for thin_volume in generic_get('thin_volumes', array_id=system_id)))
+        all_volumes.update(dict((thin_volume['id'], thin_volume['name']) for thin_volume in generic_get('thin_volumes', array_id=system_id)))
         snapshots_for_print = ['(id: {0}, group: {1}, volume: {2})'.format(x['id'],
                                                                            snapshot_groups[x['pitGroupRef']],
                                                                            all_volumes[x['baseVol']])
@@ -467,7 +493,15 @@ netapp_e_network_interface {{"{macAddr}":
                     snapshots=[j['id'] for j in generic_get('snapshots', array_id=system_id)],
                     snapshots_for_print=snapshots_for_print,
                     snapshots_for_assertion=snapshots_for_assertion,
+                    snapshot_volumes=[j['label'] for j in generic_get('snapshot_views', array_id=system_id)],
+                    volume_mappings=[j['lun'] for j in generic_get('volume_mappings', array_id=system_id)],
                     )
+
+########################################################################################################################
+
+    @classmethod
+    def case_short_name(cls, full_name):
+        return re.search(r'\.(?P<testcase_id>[^\.]*)$', full_name).group('testcase_id')
 
 ########################################################################################################################
 
@@ -490,7 +524,6 @@ netapp_e_network_interface {{"{macAddr}":
 
         # Read config
         cls.log.debug("Reading configuration...")
-
 
         cls.url = configuration.server_root_url
         cls.manifest_path = configuration.manifest_path
@@ -532,7 +565,7 @@ netapp_e_network_interface {{"{macAddr}":
         # Getting back original site.pp
         cls.log.debug("Restoring original site.pp ...")
         if os.geteuid() != 0:
-            sh.sudo('/bin/mv', cls.bck_manifest_name, cls.manifest_path + "/site.pp" )
+            sh.sudo('/bin/mv', cls.bck_manifest_name, cls.manifest_path + "/site.pp")
         else:
             sh.mv(cls.bck_manifest_name, cls.manifest_path + "/site.pp")
 
