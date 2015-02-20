@@ -1,0 +1,44 @@
+[
+  {
+    "storagesystem": "storagesystem",
+    "ports": [
+      {
+        "hostPortRef": "",
+        "hostPortName": "",
+        "label": "",
+        "hostRef": "",
+        "hostPortTypeIndex": 0,
+        "isSAControlled": false,
+        "confirmLUNMappingCreation": false,
+        "portId": {
+          "ioInterfaceType": "IOInterfaceType",
+          "portName": "",
+          "ibPortName": "",
+          "iscsiPortName": {
+            "initiatorNodeName": "",
+            "initiatorSessionId": ""
+          },
+          "sasPortName": ""
+        },
+        "portInactive": false
+      }
+    ],
+    "initiators_ref_numbers": "inititators",
+    "hostSidePorts": [
+      {
+        "type": "IOInterfaceType",
+        "address": "",
+        "label": ""
+      }
+    ],
+    "id": "id",
+    "isLargeBlockFormatHost": false,
+    "label": "name",
+    "isSAControlled": false,
+    "hostRef": "",
+    "clusterRef": "groupid",
+    "hostTypeIndex": 4,
+    "protectionInformationCapableAccessMethod": false,
+    "confirmLUNMappingCreation": false
+  }
+]

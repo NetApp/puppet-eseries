@@ -38,7 +38,7 @@ describe Puppet::Type.type(:netapp_e_storage_pool) do
     [:storagesystem, :name, :diskids, :raidlevel].each do |param|
       it "#{param} should be a required" do
         resource.delete(param)
-        expect {described_class.new(resource)}.to raise_error Puppet::Error
+        expect { described_class.new(resource) }.to raise_error Puppet::Error
       end
     end
   end

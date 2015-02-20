@@ -1,25 +1,33 @@
+def unlist(value)
+  # returns first element of array, but only when array has size of 1
+  # returns vlaue if value isn't array
+  # It's for params/properties, that are array_matching
+  return value[0] if value.is_a?(Array) && value.size == 1
+  value
+end
+
 shared_examples 'a string param/property' do |param_name, special_characters|
   it 'should support letters' do
     value = ('a'..'z').to_a.join ''
     resource[param_name] = value
-    described_class.new(resource)[param_name].should == value
+    unlist(described_class.new(resource)[param_name]).should == value
   end
   it 'should support digits' do
     value = ('0'..'9').to_a.join ''
     resource[param_name] = value
-    described_class.new(resource)[param_name].should == value
+    unlist(described_class.new(resource)[param_name]).should == value
   end
   it 'should support underscore' do
     value = '__'
     resource[param_name] = value
-    described_class.new(resource)[param_name].should == value
+    unlist(described_class.new(resource)[param_name]).should == value
   end
   if special_characters
     it 'should support special characters and spaces' do
       '!£§!@#$%^&*()-+=[]{};\':"\|?/.>,<~` '.split('').each do |char|
         value = 'my' + char + 'name'
         resource[param_name] = value
-        described_class.new(resource)[param_name].should == value
+        unlist(described_class.new(resource)[param_name]).should == value
       end
     end
   else
@@ -60,9 +68,7 @@ shared_examples 'a enum param/property' do |param_name, enum, default|
   end
   unless default.nil?
     it "should have default value set to #{default}" do
-      if default.instance_of?(String)
-        default = default.to_sym
-      end
+      default = default.to_sym if default.instance_of?(String)
       described_class.new(resource)[param_name].should == default
     end
   end
@@ -79,7 +85,7 @@ shared_examples 'a array_matching param' do |param_name, single, array|
   end
   it 'should support single value' do
     resource[param_name] = single
-    described_class.new(resource)[param_name].should == single
+    unlist(described_class.new(resource)[param_name]).should == single
   end
 end
 
