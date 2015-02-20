@@ -13,6 +13,9 @@ The NetApp E-Series module manages E-Series storage arrays using Puppet Network 
 node 'puppet.node.local' {
   include netapp_e
 
+  # This will prepare puppet device configuration on node which have
+  # connection to SANtricity Web Proxy
+
   $hostname = 'netapp.local'
   netapp_e::config { $hostname:
     username => $username,
@@ -22,6 +25,7 @@ node 'puppet.node.local' {
     target   => "${::settings::confdir}/device/${hostname}"
   }
 
+  # Set up a cron job for running puppet device periodically
   cron { "netappe-puppet-device-run":
     command => "puppet device --deviceconfig ${::settings::confdir}/device/${hostname}",
     minute  => fqdn_rand(60),
@@ -36,7 +40,7 @@ node 'netapp.local' {
   netapp_e_storage_system {$storage_system:
     ensure      => $status,
     controllers => ['10.250.117.116', '10.250.117.117'],
-    password    => 'Haslo1234',
+    password    => 'Password_1234',
   }
 
   netapp_e_storage_system {'third':
@@ -44,9 +48,12 @@ node 'netapp.local' {
     controllers => ['10.250.117.114', '10.250.117.115'],
   }
 
-
+  # We need to wait before storage-system will be fully initialized. 	
+  # We can use fact exported by the module: $::initialized_systems
+  # and postpone operations involving storage-system resource to next puppet run.
   if $::initialized_systems and ($storage_system in $::initialized_systems) {
 
+    # Volume group
     netapp_e_storage_pool {'raid5pool-second':
       ensure        => $status,
       storagesystem => $storage_system,
@@ -63,12 +70,33 @@ node 'netapp.local' {
       storagesystem => 'third',
       raidlevel     => 'raid5',
       diskids       => [
-        '010000005000CCA05763E8A80000000000000000',
-        '010000005000CCA05764AEF00000000000000000',
-        '010000005000CCA05767B06C0000000000000000',
+        '010000005000CCA0577D11A00000000000000000',
+        '010000005000CCA0577D13A40000000000000000',
+        '010000005000CCA0577D58700000000000000000',
       ],
     }
 
+    # Disk pool
+    netapp_e_storage_pool {'disk-pool-1':
+      ensure        => $status,
+      storagesystem => $storage_system,
+      raidlevel     => 'raidDiskPool',
+      diskids       => [
+        '010000005000CCA05763E8A80000000000000000',
+        '010000005000CCA05764AEF00000000000000000',
+        '010000005000CCA05767B06C0000000000000000',
+        '010000005000CCA05763E8A80000000000000000',
+        '010000005000CCA05764AEF00000000000000000',
+        '010000005000CCA05767B06C0000000000000000',
+        '010000005000CCA05763E8A80000000100000000',
+        '010000005000CCA05764AEF00000000200000000',
+        '010000005000CCA05767B06C0000000300000000',
+        '010000005000CCA05764AEF00000000400000000',
+        '010000005000CCA05767B06C0000000500000000',
+      ],
+    }
+
+    # Standard volume
     netapp_e_volume {'volume-standard-second':
       ensure        => $status,
       storagesystem => $storage_system,
@@ -82,32 +110,82 @@ node 'netapp.local' {
       ensure        => $status,
       storagesystem => 'third',
       size          => 1,
-      storagepool   => 'raid5pool-third',
-      sizeunit      => 'gb',
-      segsize       => '512',
-    }
-
-    netapp_e_volume {'A-second':
-      ensure        => $status,
-      storagesystem => $storage_system,
-      size          => 1,
       storagepool   => 'raid5pool-second',
       sizeunit      => 'gb',
       segsize       => '512',
     }
 
-    netapp_e_volume {'A-third':
-      ensure        => $status,
-      storagesystem => 'third',
-      size          => 1,
-      storagepool   => 'raid5pool-third',
-      sizeunit      => 'gb',
-      segsize       => '512',
+    # Thin volume
+    netapp_e_volume {'new-thin-volume':
+      ensure            => $status,
+      storagesystem     => $storage_system,
+      size              => 4,
+      sizeunit          => 'gb',
+      repositorysize    => 10,
+      maxrepositorysize => 15,
+      storagepool       => 'disk-pool-1',
+      thin              => true
     }
 
+    # Volume copy
+    netapp_e_volume_copy {'new-copy-volume':
+      ensure               => $status,
+      storagesystem        => $storage_system,
+      source               => 'volume-standard-second',
+      target               => 'new-thin-volume',
+      copypriority         => 'priority3',
+      targetwriteprotected => false,
+      disablesnapshot      => true
+    }
+
+    # Hosts and Host Groups
+    netapp_e_host_group {'zone2':
+      ensure        => $status,
+      storagesystem => $storage_system,
+    }
+
+    $ports = [
+      {
+        type => 'iscsi',
+        port => 'iqn.1998-05.com.windows:cd42b74121212',
+        label => 'newone'
+      }
+    ]
+
+    netapp_e_host {'linux-test':
+      ensure        => $status,
+      typeindex     => 9,
+      storagesystem => $storage_system,
+      groupid       => 'zone2',
+      ports         => $ports,
+    }
+
+    # Lun map	
+    netapp_e_map {'new-thin-volume':
+      ensure        => $status,
+      storagesystem => $storage_system,
+      lun           => 11,
+      source        => 'new-thin-volume',
+      target        => 'zone2',
+      type          => hostgroup
+    }
+
+    # Snapshot group
+    netapp_e_snapshot_group {'new-snapshot-group':
+      ensure         => $status,
+      storagesystem  => $storage_system,
+      storagepool    => 'disk-pool-1',
+      volume         => 'new-thin-volume',
+      repositorysize => 30,
+      warnthreshold  => 75,
+      policy         => 'purgepit',
+      limit          => 7
+    }
+
+    # Async Mirror Group
     netapp_e_mirror_group {'new-mirror-group':
       ensure            => $status,
-      primaryarray      => 'second',
+      primaryarray      => $storage_system,
       secondaryarray    => 'third',
       syncinterval      => 11,
       syncthreshold     => 16,
@@ -115,25 +193,28 @@ node 'netapp.local' {
       repothreshold     => 43,
     }
 
-        netapp_e_mirror_members {'new-mirror-members':
-          ensure          => $status,
-          primaryvolume   => 'volume-standard-second',
-          secondaryvolume => 'volume-standard-third',
-          mirror          => 'new-mirror-group'
-        }
+    netapp_e_mirror_members {'new-mirror-members':
+      ensure          => $status,
+      primaryvolume   => 'volume-standard-second',
+      secondaryvolume => 'volume-standard-third',
+      mirror          => 'new-mirror-group'
+    }
 
 
   } else {
     notice("Wait to initialize storage-system: ${storage_system}")
   }
 
+  # Dependencies chains
   if $status == present {
     Netapp_e_storage_system <| |> -> Netapp_e_storage_pool <| |> -> Netapp_e_volume <| |> ->
-    Netapp_e_mirror_group <| |> -> Netapp_e_mirror_members <| |>
+    Netapp_e_volume_copy <| |> -> Netapp_e_snapshot_group <| |> -> Netapp_e_host_group <| |> -> 
+    Netapp_e_host <| |> -> Netapp_e_map <| |> -> Netapp_e_mirror_group <| |> -> Netapp_e_mirror_members <| |>
   }
   elsif $status == absent {
-    Netapp_e_mirror_members <| |> -> Netapp_e_mirror_group <| |> ->  Netapp_e_volume <| |> ->
-    Netapp_e_storage_pool <| |> -> Netapp_e_storage_system <| |>
+    Netapp_e_mirror_members <| |> -> Netapp_e_mirror_group <| |> -> Netapp_e_map <| |> ->  Netapp_e_host <| |> ->
+    Netapp_e_host_group <| |> -> Netapp_e_snapshot_group <| |> -> Netapp_e_volume_copy <| |> ->
+    Netapp_e_volume <| |> -> Netapp_e_storage_pool <| |> -> Netapp_e_storage_system <| |>
   }
 }
 ```
@@ -212,17 +293,17 @@ This type require `:schedule` meta-parameter to be set.
 * `group` Name of snapshot group.
 
 ```puppet
-    schedule { 'everyday':
-      period   => daily,
-      repeat   => 1,
-    }
+schedule { 'everyday':
+  period   => daily,
+  repeat   => 1,
+}
 
-    netapp_e_snapshot_image {'daily-snapshot':
-      group         => 'NewSnapshotGroup',
-      storagesystem => 'sys_id',
-      schedule      => 'everyday',
-      require       => Netapp_e_snapshot_group['NewSnapshotGroup']
-    }
+netapp_e_snapshot_image {'daily-snapshot':
+  group         => 'NewSnapshotGroup',
+  storagesystem => 'sys_id',
+  schedule      => 'everyday',
+  require       => Netapp_e_snapshot_group['NewSnapshotGroup']
+}
 ```
 
 netapp_e_snapshot_volume
@@ -240,15 +321,15 @@ Manage Netapp E series snapshot volume
 * `repositorysize` The size of the view in relation to the size of the base volume.
 
 ```puppet
-    netapp_e_snapshot_volume {'NewSnapshotVol':
-       storagesystem  => 'sys_id',
-       imageid        => '34000000600A098000607399006302C054DDC033',
-       storagepool    => 'raid5pool',
-       viewmode       => 'readWrite',
-       repositorysize => 10,
-       fullthreshold  => 14,
-			 require        => Netapp_e_storage_pool['raid5pool']
-     }
+netapp_e_snapshot_volume {'NewSnapshotVol':
+  storagesystem  => 'sys_id',
+  imageid        => '34000000600A098000607399006302C054DDC033',
+  storagepool    => 'raid5pool',
+  viewmode       => 'readWrite',
+  repositorysize => 10,
+  fullthreshold  => 14,
+  require        => Netapp_e_storage_pool['raid5pool']
+}
 ```
 
 netapp_e_volume_copy
@@ -329,15 +410,64 @@ Manage Netapp E series mirror group members
 * `scanmedia` (boolean)
 * `validateparity` (boolean) Validate repository parity.
 
+netapp_e_network_interface
+-----------
+Manage Netapp E series management network configuration
+
+### Attributes ###
+
+* `macaddr` An ASCII string representation of the globally-unique 48-bit MAC address assigned to the Ethernet interface.
+* `storagesystem` Storage system ID.
+* `ipv4` (boolean) True if ipv4 is to be enabled for this interface.
+* `ipv4address` The ipv4 address for the interface. Required for static configuration.
+* `ipv4mask` The ipv4 subnet mask for the interface. Required for static configuration.
+* `ipv4gateway` Manually specify the address of the gateway.
+* `ipv4config` Setting that determines how the ipv4 address is configured. Required if ipv4 is enabled. Possible values: 'configDhcp', 'configStatic', '__UNDEFINED'
+* `ipv6` (boolean) True if ipv6 is to be enabled for this interface.
+* `ipv6address` The ipv6 local address for the interface.
+* `ipv6config` The method by which the ipv6 address information is configured for the interface. Possible values: 'configStatic', 'configStateless', '__UNDEFINED'
+* `ipv6gateway` Manually specify the address of the gateway.
+* `ipv6routableaddr` 
+* `remoteaccess` (boolean) If set to true, the controller is enabled for establishment of a remote access session. Depending on the controller platform, the method for remote access could be rlogin or telnet.
+* `speed` The configured speed setting for the Ethernet interface. Possible values: 'speedNone', 'speedAutoNegotiated', 'speed10MbitHalfDuplex', 'speed10MbitFullDuplex', 'speed100MbitHalfDuplex', 'speed100MbitFullDuplex', 'speed1000MbitHalfDuplex', 'speed1000MbitFullDuplex', '__UNDEFINED'
+
+```puppet
+netapp_e_network_interface {"00A098607387":
+  storagesystem => 'sys_id',
+  ipv4          => true,
+  ipv4config    => 'configStatic',
+  ipv4address   => '10.250.117.117',
+  ipv4gateway   => '10.250.116.1',
+  ipv4mask      => '255.255.252.0',
+  remoteaccess  => true,
+}
+```
+
+netapp_e_password
+-----------
+Manage Netapp E series storage array password
+
+### Attributes ###
+
+* `storagesystem` Storage system ID.
+* `current` Current admin password
+* `new` New password.
+* `admin` (boolean) If this is true, this will set the admin password, if false, it sets the RO password.
+* `force` (boolean) If true it will always try change password, even if already set. We can not check if passwords match.
+
+```puppet
+netapp_e_password {'sys_id':
+  current => '',
+  new     => 'new_password',
+  admin   => true,
+  force   => false,
+}
+```
+
 ## Contributing ##
 
-Rspec test can be run using command:
-
-    rspec spec/*
-		
-from the module root directory.
-
-Acceptance test can be found in acceptancetests directory.
+Before creating pull request, run the tests and ensure that all Rspec pass.
+You can also check acceptance test which can be found in [acceptancetests directory](acceptancetests/README.md)
 
 ## Authors & Contributors ##
 
