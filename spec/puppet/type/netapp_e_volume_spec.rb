@@ -96,7 +96,7 @@ describe Puppet::Type.type(:netapp_e_volume) do
       it_behaves_like 'a string param/property', :segsize, true
     end
     context 'for dataassurance' do
-      it_behaves_like 'a boolish param/property', :dataassurance
+      it_behaves_like 'a boolean param', :dataassurance
     end
     context 'for thin' do
       before :each do
@@ -104,7 +104,7 @@ describe Puppet::Type.type(:netapp_e_volume) do
                         :maxrepositorysize => '1',
                         :repositorysize => '2')
       end
-      it_behaves_like 'a boolish param/property', :thin, false
+      it_behaves_like 'a boolean param', :thin, false
     end
     context 'for repositorysize' do
       it_behaves_like 'a string param/property', :repositorysize, true
@@ -119,13 +119,13 @@ describe Puppet::Type.type(:netapp_e_volume) do
       it_behaves_like 'a string param/property', :growthalertthreshold, true
     end
     context 'for defaultmapping' do
-      it_behaves_like 'a boolish param/property', :defaultmapping
+      it_behaves_like 'a boolean param', :defaultmapping
     end
     context 'for expansionpolicy' do
       it_behaves_like 'a enum param/property', :expansionpolicy, %w(unknown manual automatic __UNDEFINED)
     end
     context 'for cachereadahead' do
-      it_behaves_like 'a boolish param/property', :cachereadahead
+      it_behaves_like 'a boolean param', :cachereadahead
     end
   end
 end

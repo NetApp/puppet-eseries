@@ -58,7 +58,7 @@ describe Puppet::Type.type(:netapp_e_storage_pool) do
       it_behaves_like 'a string param/property', :id, true
     end
     context 'for erasedrives' do
-      it_behaves_like 'a boolish param/property', :erasedrives, false
+      it_behaves_like 'a boolean param', :erasedrives, false
     end
     context 'for raidlevel' do
       it_behaves_like 'a enum param/property', :raidlevel, %w(raidUnsupported raidAll raid0 raid1 raid3 raid5 raid6 raidDiskPool __UNDEFINED)

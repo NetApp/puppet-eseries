@@ -55,7 +55,7 @@ describe Puppet::Type.type(:netapp_e_network_interface) do
       it_behaves_like 'a string param/property', :interfacename, true
     end
     context 'for ipv4' do
-      it_behaves_like 'a boolish param/property', :ipv4
+      it_behaves_like 'a boolish property', :ipv4
     end
     context 'for ipv4address' do
       it_behaves_like 'a IPv4 param/property', :ipv4address
@@ -70,7 +70,7 @@ describe Puppet::Type.type(:netapp_e_network_interface) do
       it_behaves_like 'a enum param/property', :ipv4config, %w(configDhcp configStatic __UNDEFINED)
     end
     context 'for ipv6' do
-      it_behaves_like 'a boolish param/property', :ipv6
+      it_behaves_like 'a boolish property', :ipv6
     end
     context 'for ipv6address' do
       it_behaves_like 'a IPv6 param/property', :ipv6address
@@ -85,7 +85,7 @@ describe Puppet::Type.type(:netapp_e_network_interface) do
       it_behaves_like 'a IPv6 param/property', :ipv6routableaddr
     end
     context 'for remoteaccess' do
-      it_behaves_like 'a boolish param/property', :remoteaccess
+      it_behaves_like 'a boolish property', :remoteaccess
     end
     context 'for speed' do
       it_behaves_like 'a enum param/property', :speed, %w(speedNone speedAutoNegotiated speed10MbitHalfDuplex speed10MbitFullDuplex speed100MbitHalfDuplex speed100MbitFullDuplex speed1000MbitHalfDuplex speed1000MbitFullDuplex __UNDEFINED)

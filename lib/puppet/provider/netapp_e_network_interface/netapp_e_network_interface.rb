@@ -18,14 +18,14 @@ Puppet::Type.type(:netapp_e_network_interface).provide(:netapp_e_network_interfa
           :controller => net_int['controllerRef'],
           :storagesystem => net_int['storagesystem'],
           :interfacename => net_int['interfaceName'],
-          :ipv4 => net_int['ipv4Enabled'],
+          :ipv4 => net_int['ipv4Enabled'].to_s.to_sym,
           :ipv4address => net_int['ipv4Address'],
           :ipv4mask => net_int['ipv4SubnetMask'],
           :ipv4gateway => net_int['ipv4GatewayAddress'],
           :ipv4config => net_int['ipv4AddressConfigMethod'],
-          :ipv6 => net_int['ipv6Enabled'],
+          :ipv6 => net_int['ipv6Enabled'].to_s.to_sym,
           :ipv6config  => net_int['ipv6AddressConfigMethod'],
-          :remoteaccess => net_int['rloginEnabled'],
+          :remoteaccess => net_int['rloginEnabled'].to_s.to_sym,
           :speed => net_int['configuredSpeedSetting']
          )
     end

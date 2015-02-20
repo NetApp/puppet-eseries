@@ -46,12 +46,10 @@ shared_examples 'a enum param/property' do |param_name, enum, default|
       it "#{val}" do
         resource[param_name] = val
         expected = val
-        if val == :true
-          expected = true
-        elsif val == :false
-          expected = false
-        elsif val.instance_of?(String)
+        if val.instance_of?(String)
           expected = val.to_sym
+        elsif ( !!val == val) # if boolean type
+          expected = val.to_s.to_sym
         end
         described_class.new(resource)[param_name].should == expected
       end
@@ -74,8 +72,42 @@ shared_examples 'a enum param/property' do |param_name, enum, default|
   end
 end
 
-shared_examples 'a boolish param/property' do |param_name, default|
-  include_examples 'a enum param/property', param_name, [true, :true, false, :false], default
+shared_examples 'a boolish property' do |param_name, default|
+   include_examples 'a enum param/property', param_name, [true, false, :true, :false], default
+end
+
+shared_examples 'a boolean param' do |param_name, default|
+  values =  [true, :true, false, :false]
+  context 'should acccept' do
+    values.each do |val|
+      it "#{val}" do
+        resource[param_name] = val
+        expected = val
+        if val == :true
+          expected = true
+        elsif val == :false
+          expected = false
+        elsif val.instance_of?(String) 
+          expected = val.to_sym
+        end
+        described_class.new(resource)[param_name].should == expected
+      end
+    end
+  end
+  describe 'should not accept' do
+    [1, 'string', :symbol, ['array'], { 'hash' => 'value' }].each do |val|
+      it "#{val}" do
+        resource[param_name] = val
+        expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
+      end
+    end
+  end
+  unless default.nil?
+    it "should have default value set to #{default}" do
+      default = default.to_sym if default.instance_of?(String)
+      described_class.new(resource)[param_name].should == default
+    end
+  end
 end
 
 shared_examples 'a array_matching param' do |param_name, single, array|
