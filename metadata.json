@@ -1,14 +1,13 @@
 {
-  "name": "michalskalski-netapp_e",
+  "name": "puppet-eseries",
   "version": "0.1.0",
-  "author": "michalskalski",
+  "author": "NetApp",
   "summary": "NetApp E-series storage arrays support for Puppet",
   "license": "Apache 2.0",
-  "source": "",
-  "project_page": null,
-  "issues_url": null,
+  "source": "https://github.com/NetApp/puppet-eseries",
+  "project_page": "https://github.com/NetApp/puppet-eseries",
+  "issues_url": "https://github.com/NetApp/puppet-eseries/issues",
   "dependencies": [
     {"name":"puppetlabs-stdlib","version_requirement":">= 1.0.0"}
   ]
 }
-
