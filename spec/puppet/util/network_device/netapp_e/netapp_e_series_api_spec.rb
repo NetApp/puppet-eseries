@@ -555,4 +555,31 @@ describe NetApp::ESeries::Api do
       let(:fail_message) { 'Failed to get mirror groups' }
     end
   end
+
+  context 'get_lun_mapping' do
+    before(:each) do
+      @expect_in_request[:url] = @url + '/devmgr/v2/storage-systems/sys_id/volume-mappings'
+    end
+    it 'should raise Runtime Error if status code is not 200' do
+      @response[:status] = 404
+      Excon.stub(@expect_in_request, @response)
+      expect { @netapp_api.get_lun_mapping 'sys_id', 'lun' }.to raise_status_error('Failed to get lun mappings', @response)
+
+    end
+  end
+  context 'create_lun_mapping' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/volume-mappings' }
+      let(:method_call) { @netapp_api.create_lun_mapping 'sys_id', 'map_id' }
+      let(:fail_message) { 'Failed to create lun mapping' }
+    end
+  end
+  context 'delete_lun_mapping' do
+    it_behaves_like 'a simple API call', :delete, 204 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/volume-mappings/map_id' }
+      let(:method_call) { @netapp_api.delete_lun_mapping 'sys_id', 'map_id' }
+      let(:fail_message) { 'Failed to delete lun mapping' }
+    end
+  end
+
 end
