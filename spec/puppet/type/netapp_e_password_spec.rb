@@ -52,10 +52,10 @@ describe Puppet::Type.type(:netapp_e_password) do
       it_behaves_like 'a string param/property', :new, true
     end
     context 'for admin' do
-      it_behaves_like 'a boolish param/property', :admin
+      it_behaves_like 'a boolean param', :admin
     end
     context 'for force' do
-      it_behaves_like 'a boolish param/property', :force, false
+      it_behaves_like 'a boolean param', :force, false
     end
     context 'for ensure' do
       it 'should set password when sync' do

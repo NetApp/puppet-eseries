@@ -46,8 +46,9 @@ Puppet::Type.newtype(:netapp_e_network_interface) do
     desc 'Name of Ethernet port'
   end
 
-  newproperty(:ipv4, :boolean => true, :parent => Puppet::Parameter::Boolean) do
+  newproperty(:ipv4) do
     desc 'True if ipv4 is to be enabled for this interface; otherwise false.'
+    newvalues(:true, :false)
   end
 
   newproperty(:ipv4address) do
@@ -79,8 +80,9 @@ Puppet::Type.newtype(:netapp_e_network_interface) do
     newvalues('configDhcp', 'configStatic', '__UNDEFINED')
   end
 
-  newproperty(:ipv6, :boolean => true, :parent => Puppet::Parameter::Boolean) do
+  newproperty(:ipv6) do
     desc 'True if ipv6 is to be enabled for this interface; otherwise false.'
+    newvalues(:true, :false)
   end
 
   newparam(:ipv6address) do
@@ -110,9 +112,10 @@ Puppet::Type.newtype(:netapp_e_network_interface) do
     end
   end
 
-  newproperty(:remoteaccess, :boolean => true, :parent => Puppet::Parameter::Boolean) do
+  newproperty(:remoteaccess) do
     desc 'If set to true, the controller is enabled for establishment of a remote access session.
         Depending on the controller platform, the method for remote access could be rlogin or telnet.'
+    newvalues(:true, :false)
   end
 
   newproperty(:speed) do
