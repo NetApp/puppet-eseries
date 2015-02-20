@@ -4,10 +4,16 @@ from ConfigParser import SafeConfigParser
 ####################
 
 
-config_file = SafeConfigParser({'host': 'http://localhost', 'port': '8080', 'userId': 'rw', 'password': 'rw'})
+config_file = SafeConfigParser({'host': 'http://localhost',
+                                'port': '8080',
+                                'userId': 'rw',
+                                'password': 'rw',
+                                'verbose_output': 'False'})
 config_file.read('netapp_testsuite_options.conf')
 
 manifest_path = config_file.get('puppet', 'manifest_path')
+
+verbose_output = config_file.getboolean('tests', 'verbose_output')
 
 # DUT parameters
 first_system_id = config_file.get('tests', 'first_system_id')
