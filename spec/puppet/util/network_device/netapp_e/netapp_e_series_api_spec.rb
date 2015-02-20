@@ -564,7 +564,25 @@ describe NetApp::ESeries::Api do
       @response[:status] = 404
       Excon.stub(@expect_in_request, @response)
       expect { @netapp_api.get_lun_mapping 'sys_id', 'lun' }.to raise_status_error('Failed to get lun mappings', @response)
-
+    end
+    it 'should return :absent if lun is not present' do
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.get_lun_mapping 'sys_id', 'lun').to eq(:absent)
+    end
+    context 'when lun is present' do
+      before :each do
+        @body[1]['lun'] = :lun
+        @body[1].merge!('lun' => :lun,
+                        'lunMappingRef' => 'lunMappingRef_value')
+        @response[:body] = JSON.generate(@body)
+        Excon.stub(@expect_in_request, @response)
+      end
+      it 'should return :present if status is set to true' do
+        expect(@netapp_api.get_lun_mapping 'sys_id', 'lun', true).to eq(:present)
+      end
+      it 'should return lunMappingRef if status is set to false' do
+        expect(@netapp_api.get_lun_mapping 'sys_id', 'lun', false).to eq('lunMappingRef_value')
+      end
     end
   end
   context 'create_lun_mapping' do
@@ -581,5 +599,4 @@ describe NetApp::ESeries::Api do
       let(:fail_message) { 'Failed to delete lun mapping' }
     end
   end
-
 end
