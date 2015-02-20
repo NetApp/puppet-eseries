@@ -27,17 +27,17 @@ Puppet::Type.newtype(:netapp_e_host) do
   newproperty(:groupid) do
     desc 'Name of host group where host belongs'
     munge do |value|
-      begin
+     begin
         hg_id = provider.transport.host_group_id(@resource[:storagesystem], value)
         if hg_id
           hg_id
         else
           { :value => value }
         end
-      rescue
+     rescue RuntimeError
         Puppet.debug("#{value} not interpolated to group id, assume that group id is explicit given")
         value
-      end
+     end
     end
   end
 

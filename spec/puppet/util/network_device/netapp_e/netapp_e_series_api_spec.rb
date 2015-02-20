@@ -64,6 +64,52 @@ shared_examples 'a call based on storage systems' do |uri_suffix|
   end
 end
 
+shared_examples 'a call for entity id based on storage system' do |uri_suffix, tested_method|
+  before(:each) do
+    @sys_id = 'sys_id'
+    @expect_in_request[:url] = @url + "/devmgr/v2/storage-systems/#{@sys_id}/#{uri_suffix}"
+    @method = @netapp_api.method(tested_method)
+  end
+  it 'should return nil if label does not match given name' do
+    name = 'name'
+    @response[:body] = JSON.generate([{ 'id' => 'entity_id',
+                                        'label' => 'not_name',
+                                        'key' => 'value' },
+                                      { 'id' => 'entity_id2',
+                                        'label' => 'not_name2',
+                                        'key' => 'value' }
+                                     ])
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, name).to be_nil
+  end
+
+  it 'should return nil if storage system do not have entities' do
+    name = 'name'
+    @response[:body] = JSON.generate([])
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, name).to eq(nil)
+  end
+
+  it 'should return entity id if label matches given name' do
+    name = 'name'
+    @response[:body] = JSON.generate([{ 'id' => 'entity_id',
+                                        'label' => 'not_name',
+                                        'key' => 'value' },
+                                      { 'id' => 'entity_id2',
+                                        'label' => name,
+                                        'key' => 'value' }
+                                     ])
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, name).to eq('entity_id2')
+  end
+
+  it 'should raise RuntimeError if status code is not 200' do
+    @response[:status] = 404
+    Excon.stub(@expect_in_request, @response)
+    expect { @method.call @sys_id, 'name' }.to raise_status_error(fail_message, @response)
+  end
+end
+
 describe NetApp::ESeries::Api do
   before(:each) do
     @user = 'user'
@@ -462,45 +508,20 @@ describe NetApp::ESeries::Api do
   end
 
   context 'storage_pool_id' do
-    before(:each) do
-      @sys_id = 'sys_id'
-      @expect_in_request[:url] = @url + "/devmgr/v2/storage-systems/#{@sys_id}/storage-pools"
+    it_behaves_like 'a call for entity id based on storage system', 'storage-pools', :storage_pool_id do
+      let(:fail_message) { 'Failed to get pool id' }
     end
-    it 'should return nil if pool label does not match given name' do
-      name = 'name'
-      @response[:body] = JSON.generate([{ 'id' => 'pool_id',
-                                          'label' => 'not_name',
-                                          'key' => 'value' },
-                                        { 'id' => 'pool_id2',
-                                          'label' => 'not_name2',
-                                          'key' => 'value' }
-                                       ])
-      Excon.stub(@expect_in_request, @response)
-      expect(@netapp_api.storage_pool_id @sys_id, name).to be_nil
-    end
+  end
 
-    it 'should return nil if storage system do not have pools' do
-      name = 'name'
-      @response[:body] = JSON.generate([])
-      Excon.stub(@expect_in_request, @response)
-      expect(@netapp_api.storage_pool_id @sys_id, name).to eq(nil)
+  context 'host_group_id' do
+    it_behaves_like 'a call for entity id based on storage system', 'host-groups', :host_group_id do
+      let(:fail_message) { 'Failed to get host group id' }
     end
-    it 'should return pool id if pool label matches given name' do
-      name = 'name'
-      @response[:body] = JSON.generate([{ 'id' => 'pool_id',
-                                          'label' => 'not_name',
-                                          'key' => 'value' },
-                                        { 'id' => 'pool_id2',
-                                          'label' => name,
-                                          'key' => 'value' }
-                                       ])
-      Excon.stub(@expect_in_request, @response)
-      expect(@netapp_api.storage_pool_id @sys_id, name).to eq('pool_id2')
-    end
-    it 'should raise RuntimeError if status code is not 200' do
-      @response[:status] = 404
-      Excon.stub(@expect_in_request, @response)
-      expect { @netapp_api.storage_pool_id @sys_id, 'name' }.to raise_status_error('Failed to get pool id', @response)
+  end
+
+  context 'host_id' do
+    it_behaves_like 'a call for entity id based on storage system', 'hosts', :host_id do
+      let(:fail_message) { 'Failed to get host id' }
     end
   end
 

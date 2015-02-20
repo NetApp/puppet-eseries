@@ -9,7 +9,7 @@ describe Puppet::Type.type(:netapp_e_volume) do
                 :storagepool => 'storagepool',
                 :sizeunit => :b,
                 :size => '10',
-                :segsize => '3'}
+                :segsize => '3' }
     described_class.stubs(:defaultprovider).returns providerclass
   end
 
