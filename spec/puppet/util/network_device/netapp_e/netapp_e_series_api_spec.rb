@@ -582,4 +582,34 @@ describe NetApp::ESeries::Api do
     end
   end
 
+  context 'create_mirror_members' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/async-mirrors/mg_id/pairs' }
+      let(:method_call) { @netapp_api.create_mirror_members 'sys_id', 'mg_id', @request_body }
+      let(:fail_message) { 'Failed to create mirror group members' }
+    end
+  end
+
+  context 'delete_mirror_members' do
+    it_behaves_like 'a simple API call', :delete, 204 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/async-mirrors/mg_id/pairs/mem_id' }
+      let(:method_call) { @netapp_api.delete_mirror_members 'sys_id', 'mg_id', 'mem_id' }
+      let(:fail_message) { 'Failed to delete mirror group members' }
+    end
+  end
+
+  context 'get_mirror_members' do
+    before(:each) do
+      @expect_in_request[:url] = @url + '/devmgr/v2/storage-systems/sys_id/async-mirrors/mg_id/pairs'
+    end
+    it 'should return parsed body if status code is 200' do
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.get_mirror_members 'sys_id', 'mg_id').to eq(@body)
+    end
+    it 'should raise RuntimeError if status code is not 200' do
+      @response[:status] = 404
+      Excon.stub(@expect_in_request, @response)
+      expect { @netapp_api.get_mirror_members 'sys_id', 'mg_id' }.to raise_status_error('Failed to get mirror group members', @response)
+    end
+  end
 end

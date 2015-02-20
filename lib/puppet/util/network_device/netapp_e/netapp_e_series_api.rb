@@ -457,6 +457,22 @@ class NetApp
         status(response, 200, 'Failed to update mirror group')
       end
 
+      def get_mirror_members(sys_id, mg_id)
+        response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/async-mirrors/#{mg_id}/pairs")
+        status(response, 200, 'Failed to get mirror group members')
+        JSON.parse(response.body)
+      end
+
+      def create_mirror_members(sys_id, mg_id, request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/async-mirrors/#{mg_id}/pairs", request_body.to_json)
+        status(response, 200, 'Failed to create mirror group members')
+      end
+
+      def delete_mirror_members(sys_id, mg_id, mem_id)
+        response = request(:delete, "/devmgr/v2/storage-systems/#{sys_id}/async-mirrors/#{mg_id}/pairs/#{mem_id}")
+        status(response, 204, 'Failed to delete mirror group members')
+      end
+
       private
 
       # Determine the status of the response
