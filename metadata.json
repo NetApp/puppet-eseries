@@ -1,5 +1,5 @@
 {
-  "name": "puppet-eseries",
+  "name": "netapp-eseries",
   "version": "0.1.0",
   "author": "NetApp",
   "summary": "NetApp E-series storage arrays support for Puppet",
