@@ -21,6 +21,15 @@ class Puppet::Util::NetworkDevice::Netapp_e::Device
     @transport ||= NetApp::ESeries::Api.new(@url.user, @url.password, "#{@url.scheme}://#{@url.host}:#{@url.port}#{@url.path.chomp('/')}", true, 15)
 
     @transport.login
+
+    # post presence of Puppet module to key/value pair for ASUP posting
+    client_info = {
+        'application' => 'Puppet',
+        'app-version' => Facter.value(:puppetversion),
+        'url'         => redacted_url
+    }.to_json
+
+    @transport.post_key_value('Puppet', client_info)
   end
 
   def facts

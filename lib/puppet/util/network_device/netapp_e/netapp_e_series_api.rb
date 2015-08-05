@@ -473,6 +473,11 @@ class NetApp
         status(response, 204, 'Failed to delete mirror group members')
       end
 
+      def post_key_value(key, value)
+        response = request(:post, "/devmgr/v2/key-values/#{key}", value)
+        status(response, 200, 'Failed to add key/value pair')
+      end
+
       private
 
       # Determine the status of the response
