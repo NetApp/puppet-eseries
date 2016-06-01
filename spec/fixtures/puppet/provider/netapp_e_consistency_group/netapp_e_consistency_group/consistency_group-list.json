@@ -1,0 +1,17 @@
+[  
+   {  
+      "creationPendingStatus":"PITCreationPendingStatus",
+      "name":"CGname",
+      "id":"123456",
+      "storagesystem":"ssid116117",
+      "cgRef":"123456",
+      "label":"CGname",
+      "repFullPolicy":"purgepit",
+      "fullWarnThreshold":0,
+      "autoDeleteLimit":0,
+      "rollbackPriority":"high",
+      "uniqueSequenceNumber":[  
+         "1234342"
+      ]
+   }
+]

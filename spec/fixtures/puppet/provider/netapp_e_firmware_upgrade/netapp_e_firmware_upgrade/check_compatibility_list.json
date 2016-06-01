@@ -1,0 +1,26 @@
+{
+  "checkRunning": false,
+  "cancelled": false,
+  "lastStart": "2015-12-03",
+  "inaccessibleStorageDevices": [],
+  "results": [
+    {
+      "storageDeviceId": "ssid1819",
+      "storageDeviceWwn": "60080E50001F6D380000000056322C8A",
+      "cfwFiles": [
+      	{
+          "version": "111",
+          "filename": "CFWFILE.dlp"
+        }
+      ],
+      "nvsramFiles": [
+        {
+          "version": "222",
+          "filename": "N5468-820834-DB2.dlp"
+        }
+      ]
+    }
+  ],
+  "requestId": "1",
+  "failedStorageDevices": []
+}
