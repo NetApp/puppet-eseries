@@ -37,6 +37,18 @@ class NetApp
         ids
       end
 
+      def get_storage_system(sys_id)
+        storage_system_details = []
+        response = get_storage_systems
+        response.each do |storage_system|
+          if storage_system['id'] == sys_id
+            storage_system_details << storage_system
+            return storage_system_details
+          end
+        end
+        false
+      end
+
       def get_network_interfaces
         # array of arrays
         all_interfaces = []
@@ -474,11 +486,456 @@ class NetApp
       end
 
       def post_key_value(key, value)
-        response = request(:post, "/devmgr/v2/key-values/#{key}", value)
+        response = request(:post, "/devmgr/v2/key-values/#{key}?value=#{value}", value)
         status(response, 200, 'Failed to add key/value pair')
       end
 
-      private
+      #Call Consistency-Group API /devmgr/v2/storage-systems/#{sys_id}/consistency-groups to get all consistency group
+      def get_consistency_groups
+        ids = get_storage_systems_id
+        all_consistency_groups = []
+        if not ids.empty?
+          ids.each do |sys_id|
+            response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups")
+            status(response, 200, 'Failed to get consistency groups')
+            if response.status == 200
+              c_groups = JSON.parse(response.body)
+              storage_system = { 'storagesystem' => sys_id }
+              c_groups.map! { |cg| cg.merge(storage_system) }
+              all_consistency_groups << c_groups
+            end
+          end
+          all_consistency_groups = all_consistency_groups.reduce(:concat)
+        end
+        all_consistency_groups
+      end
+
+      #Call Consistency-Group API /devmgr/v2/storage-systems/#{sys_id}/consistency-groups to get all consistency group
+      def get_all_consistency_groups
+        ids = get_storage_systems_id
+        all_consistency_groups = []
+        if not ids.empty?
+          ids.each do |sys_id|
+            response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups")
+            status(response, 200, 'Failed to get consistency groups')
+            if response.status == 200
+              c_groups = JSON.parse(response.body)
+              storage_system = { 'storagesystem' => sys_id }
+              c_groups.map! { |cg| cg.merge(storage_system) }
+              all_consistency_groups << c_groups
+            end
+          end
+          all_consistency_groups = all_consistency_groups.reduce(:concat)
+        end
+        all_consistency_groups
+      end
+
+      #Call Consistency-Group API /devmgr/v2/storage-systems/#{sys_id}/consistency-groups to create new consistency group
+      def create_consistency_group(sys_id, request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups", request_body.to_json)
+        status(response, 200, 'Failed to create consistency group')
+      end
+
+      #Call Consistency-Group API /devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id} to delete consistency group
+      def delete_consistency_group(sys_id, cg_id)
+        response = request(:delete, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}")
+        status(response, 204, 'Failed to remove consistency group')
+      end
+
+      #Call Consistency-Group API /devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id} to delete consistency group
+      def update_consistency_group(sys_id, cg_id, request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}", request_body.to_json)
+        status(response, 200, 'Failed to update consistency group')
+      end
+
+      #Call Consistency-Group member-volumes API /devmgr/v2/storage-systems/#{sys_id}/consistency-groups
+      #To get all consistency group member volumes
+      #Unused Method
+      def get_all_consistency_group_member_volumes
+        ids = get_storage_systems_id
+        all_member_volumes_groups = []
+        if not ids.empty?
+          ids.each do |sys_id|
+            response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups/member-volumes")
+            status(response, 200, 'Failed to get consistency groups member volumes')
+            if response.status == 200
+              m_volumes = JSON.parse(response.body)
+              storage_system = { 'storagesystem' => sys_id }
+              m_volumes.map! { |mvg| mvg.merge(storage_system) }
+              all_member_volumes_groups << m_volumes
+            end
+          end
+          all_member_volumes_groups = all_member_volumes_groups.reduce(:concat)
+        end
+        all_member_volumes_groups
+      end
+
+      #Call Consistency-Group member-volumes API /devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/member-volumes
+      #To get perticular consistency group member 
+      def get_consistency_group_members(sys_id, cg_id)
+        response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/member-volumes")
+        status(response, 200, 'Failed to get consistency group member')
+        JSON.parse(response.body)
+      end
+
+      #Call Consistency-Group member-volumes API /devmgr/v2/storage-systems/{system-id}/consistency-groups/{cg-id}/member-volumes/
+      #To create new member in consistency group
+      def add_consistency_group_member(sys_id, cg_id, request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/member-volumes", request_body.to_json)
+        status(response, 201, 'Failed to create consistency group member')
+      end
+
+      #Call Consistency-Group member-volumes API /devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/member-volumes
+      #To get perticular consistency group member volume
+      def get_consistency_group_member_volume(sys_id, cg_id, vol_id)
+        response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/member-volumes/#{vol_id}")
+        status(response, 200, 'Failed to get consistency group member volumes')
+        JSON.parse(response.body)
+      end
+
+      #Call Consistency-Group API member-volumes API /devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/member-volumes/#{vol_id}
+      #To delete consistency group member volumes
+      def remove_consistency_group_member(sys_id, cg_id, vol_id, is_retainrepositories)
+        response = request(:delete, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/member-volumes/#{vol_id}?retainRepositories=#{is_retainrepositories}")
+        status(response, 204, 'Failed to delete consistency group member volumes')
+      end
+
+      #Get Consistency Group id by Consistency Group name
+      def get_consistency_group_id(sys_id, cg_name)
+        response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups")
+        status(response, 200, 'Failed to get consistency groups for specified storage system')
+        consistency_groups = JSON.parse(response.body)
+        consistency_groups.each do |cg|
+          return cg['id'] if cg['name'] == cg_name
+        end
+        false
+      end
+
+      #Get all snapshots of a Consistency Group
+      def get_consistency_group_snapshots(sys_id,cg_id)
+        all_snapshots = []
+		    response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/snapshots")
+        status(response, 200, 'Failed to get snapshot group information')
+        if response.status == 200
+          cg_snapshots =  JSON.parse(response.body)
+          storage_system = { 'storagesystem' => sys_id }
+          cg_snapshots.map! { |group| group.merge(storage_system) }
+          
+          all_snapshots << cg_snapshots
+  	    end
+        all_snapshots = all_snapshots.reduce(:concat)
+      end
+
+      #Get all snapshots of consistency groups of all storage systems
+      def get_all_consistency_group_snapshots
+        all_snapshots = []
+        consistency_groups =  get_all_consistency_groups
+        consistency_groups.each do |data|
+          cg_id=data['id']
+          storage_system=data['storagesystem']
+          cg_snapshots =  get_consistency_group_snapshots(storage_system,cg_id)
+          all_snapshots << cg_snapshots
+        end
+        all_snapshots = all_snapshots.reduce(:concat)
+      end
+      
+      #Get oldest snapshot number of a consistency group
+      def get_oldest_sequence_no(sys_id,cg_name)
+        cg_id = get_consistency_group_id(sys_id,cg_name)
+        cg_snapshots = get_consistency_group_snapshots(sys_id,cg_id)
+        oldest_seq_no = 0
+	      cg_snapshots.each do |data|
+		    if ((oldest_seq_no > (data['pitSequenceNumber']).to_i) || oldest_seq_no == 0 )
+                	oldest_seq_no = (data['pitSequenceNumber']).to_i
+              	end
+	      end
+        oldest_seq_no
+      end      
+
+      # Call create Consistency group snapshot API /devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/snapshots/ 
+      # To create consistency group snapshot
+      def create_consistency_group_snapshot(sys_id, cg_id, request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/snapshots/", request_body.to_json)
+        status(response, 200, 'Failed to create consistency group snapshot')
+        JSON.parse(response.body)   
+      end
+
+      # Call remove Consistency-Group member API /devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/snapshots/#{seq_no}
+      # To remove consistency group snapshot
+      def remove_oldest_consistency_group_snapshot(sys_id, cg_id, seq_no)
+        response = request(:delete, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/snapshots/#{seq_no}")
+        status(response, 204, 'Failed to remove consistency group snapshot')
+      end
+
+      # Call rollback Consistency-Group API /devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/snapshots/#{seq_no}/rollback
+      # To rollback consistency group to a snapshot
+      def rollback_consistency_group(sys_id, cg_id, seq_no)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/snapshots/#{seq_no}/rollback")
+        status(response, 204, 'Failed to rollback consistency group snapshot')
+      end
+
+      # Call create snapshot view(s) API /storage-systems/{system-id}/consistency-groups/{cg-id}/views
+      # To create a volume from consistency group snapshot
+      def create_consistency_group_snapshot_view(sys_id, cg_id, request_body)
+ 	      response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/views", request_body.to_json)
+        status(response, 201, 'Failed to create consistency group view')
+      end
+
+      # Get all snapshots of a Consistency Group by snapshot sequence Number
+      def get_consistency_group_snapshots_by_seqno(sys_id, cg_id, seq_no)
+        all_snapshots = []
+        response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/snapshots/#{seq_no}")
+        status(response, 200, 'Failed to get snapshot group information')
+        if response.status == 200
+          cg_snapshots =  JSON.parse(response.body)
+          storage_system = { 'storagesystem' => sys_id }
+          cg_snapshots.map! { |group| group.merge(storage_system) }
+          all_snapshots << cg_snapshots
+        end
+        all_snapshots = all_snapshots.reduce(:concat)
+      end
+
+      #Get Pit id from Consistency Group Snapshot by Volume Id
+      def get_pit_id_by_volume_id(sys_id, cg_id, seq_no, volume_id)
+	      response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/snapshots/#{seq_no}")
+        status(response, 200, 'Failed to get snapshot volume information')
+        if response.status == 200
+          snapshots = JSON.parse(response.body)
+          snapshots.each do |sp|
+  	         return sp['pitRef'] if sp['baseVol'] == volume_id
+          end
+        end
+        false
+      end
+
+      #Get volume id by volume name
+      def get_volume_id(sys_id,volume_name)
+        response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/volumes")
+        status(response, 200, 'Failed to get Volumes')
+        volumes = JSON.parse(response.body)
+        volumes.each do |vm|
+ 	          return vm['id'] if vm['name'] == volume_name
+      	end
+        response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/thin-volumes")
+        status(response, 200, 'Failed to get thin Volumes')
+        volumes = JSON.parse(response.body)
+        volumes.each do |vm|
+            return vm['id'] if vm['name'] == volume_name
+        end
+      	false
+      end
+
+      #Delete existing Snapshot View
+      def delete_consistency_group_snapshot_view(sys_id, cg_id, view_id)
+	      response = request(:delete, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/views/#{view_id}")
+        status(response, 204, 'Failed to remove consistency group snapshot view')
+      end
+
+      #Get view id of snapshot of consistency group
+      def get_consistency_group_snapshot_view_id(sys_id, cg_id, view_name)
+        response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/views")
+        status(response, 200, 'Failed to get consistency groups snapshot views for specified storage system')
+        views = JSON.parse(response.body)
+        views.each do |vw|
+          return vw['id'] if vw['name'] == view_name
+        end
+        false
+      end
+
+      #Get all snapshot views associated consistency group 
+      def get_consistency_group_views(sys_id, cg_id)
+        all_views = []
+		    response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/consistency-groups/#{cg_id}/views")
+        status(response, 200, 'Failed to get snapshot view information')
+        if response.status == 200
+          cg_views =  JSON.parse(response.body)
+          storage_system = { 'storagesystem' => sys_id }
+          cg_views.map! { |group| group.merge(storage_system) }
+          all_views << cg_views
+  	    end
+        all_views = all_views.reduce(:concat)
+      end
+
+      #Get all views of snapshots of consistency groups of all storage systems
+      def get_all_consistency_group_views
+        all_views = []
+        consistency_groups =  get_all_consistency_groups
+        consistency_groups.each do |data|
+          cg_id=data['id']
+          storage_system=data['storagesystem']
+          cg_views =  get_consistency_group_views(storage_system,cg_id)
+          all_views << cg_views
+        end
+        all_views = all_views.reduce(:concat)
+      end
+
+      #Get all uploaded firmware files
+      def get_firmware_files
+        response = request(:get, "/devmgr/v2/firmware/cfw-files/")
+        status(response, 200, 'Failed to get uploaded firmware file list')
+        JSON.parse(response.body)
+      end
+
+      #Upload a new firmware file
+      def upload_firmware_file(file,is_validate)
+        
+        method    = :post
+        path      = "/devmgr/v2/firmware/upload/?validate=#{is_validate}"
+        boundary  = rand 1000000000000000
+
+        body      = ''        
+        body << "--#{boundary}" << Excon::CR_NL
+        body << %{Content-Disposition: form-data; name="firmwareFile"; filename="#{File.basename(file)}"} << Excon::CR_NL
+        body << 'Content-Type: application/x-gtar' << Excon::CR_NL
+        body << Excon::CR_NL
+        body << File.binread(file)
+        body << Excon::CR_NL
+        body << "--#{boundary}--" << Excon::CR_NL
+
+        url_request = { :headers => { 'Content-Type' => %{multipart/form-data; boundary="#{boundary}"}, 'Cookie' => @cookie}, :body    => body }
+        response = Excon.send(method, @url, :path => path, :headers => url_request[:headers], :body => url_request[:body])
+        status(response, 200, 'Failed to upload firmware file.')
+        JSON.parse(response.body)   
+      end
+
+      #Delete perticular firmware file from server
+      def delete_firmware_file(file)
+        response = request(:delete, "/devmgr/v2/firmware/upload/#{file}")
+        status(response, 204, 'Failed to delete firmware file')
+      end
+
+      #Get current firmware upgrade request detail
+      def get_firmware_upgrade_details(sys_id)
+        response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/cfw-upgrade/")
+        response
+        #status(response, 200, 'Failed to get firmware upgrade details')
+        # if response.status == 422
+        #   fail("Error : #{response.body}")
+        # end
+        # JSON.parse(response.body)
+      end
+
+      #Check compatibility for upgrade firmware controller.
+      def check_firmware_compatibility(request_body)
+        response = request(:post, "/devmgr/v2/firmware/compatibility-check/",request_body.to_json)
+        status(response, 200, 'Failed to check compatibility for upgrade firmware controller.')
+        JSON.parse(response.body)
+      end
+
+      #Check compatibility for upgrade firmware controller.
+      def get_firmware_compatibility_check_status(requestid)
+        response = request(:get, "/devmgr/v2/firmware/compatibility-check/?requestId=#{requestid}")
+        status(response, 200, 'Failed to get status of a firmware compatibility check operation.')
+        JSON.parse(response.body)
+      end
+
+      #Upgrade firmware
+      def upgrade_controller_firmware(sys_id,request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/cfw-upgrade/",request_body.to_json)
+        status(response, 202, 'Failed to upgrade firmware controller')
+        JSON.parse(response.body)
+      end
+
+      #Activate firmware
+      def activate_controller_firmware(sys_id,request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/cfw-upgrade/activate",request_body.to_json)
+        status(response, 200, 'Failed to activate firmware controller')
+        JSON.parse(response.body)
+      end
+
+      #This API returns version information for the software that is currently running (same as /utils/about) 
+      #and the version of any staged updates.  If there are no updates, the array of version data is empty.
+      def get_web_proxy_update
+        response = request(:get, "/devmgr/v2/upgrade")
+        status(response, 200, 'Failed to web proxy upgrade detail')
+        JSON.parse(response.body)
+      end
+
+      #Starts a download of software updates from the update server to the staging area.
+      def download_web_proxy_update(force)
+        req_url=''
+        if force != nil
+          req_url = "/devmgr/v2/upgrade/download?force=#{force}"
+        else
+          req_url = "/devmgr/v2/upgrade/download"
+        end
+        response = request(:post, req_url)
+        status(response, 200, 'Failed to download web proxy updates')
+        JSON.parse(response.body)
+      end
+
+      #Starts a reload of the software.  If any updates are downloaded, they will be loaded.
+      def reload_web_proxy_update
+        response = request(:post, "/devmgr/v2/upgrade/reload")
+        status(response, 200, 'Failed to reload web proxy updates')
+        JSON.parse(response.body)
+      end
+
+      #Get a set of events are posted to the event queue devmgr/v2/events that indicate the status of the process 
+      def get_events
+        response = request(:get, "/devmgr/v2/events")
+        #status(response, 200, 'Failed to get current events from server')
+        #JSON.parse(response.body)
+        response
+      end
+
+      def get_flash_cache(sys_id)
+        response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/flash-cache")
+        status(response, 200, 'Failed to get flash cache')
+        JSON.parse(response.body)        
+      end
+
+      def is_flash_cache_exist(sys_id)
+        response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/flash-cache")
+        if response.status == 200 
+          JSON.parse(response.body)
+        else
+          false
+        end 
+      end
+
+      def get_drives(sys_id)
+        response = request(:get, "/devmgr/v2/storage-systems/#{sys_id}/drives")
+        status(response, 200, 'Failed to get drives')
+        JSON.parse(response.body)        
+      end
+
+      def suspend_flash_cache(sys_id)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/flash-cache/suspend")
+        status(response, 200, 'Failed to suspend flash cache')
+      end
+
+      def resume_flash_cache(sys_id)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/flash-cache/resume")
+        status(response, 200, 'Failed to resume flash cache')
+      end
+
+      def create_flash_cache(sys_id, request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/flash-cache", request_body.to_json)
+        status(response, 200, 'Failed to create flash cache')
+      end
+
+      def delete_flash_cache(sys_id)
+        response = request(:delete, "/devmgr/v2/storage-systems/#{sys_id}/flash-cache")
+        status(response, 204, 'Failed to delete flash cache')
+      end
+
+      def update_flash_cache(sys_id, request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/flash-cache/configure", request_body.to_json)
+        status(response, 200, 'Failed to update flash cache')
+      end
+
+      def flash_cache_add_drives(sys_id, request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/flash-cache/addDrives", request_body.to_json)
+        status(response, 200, 'Failed to add drives to flash cache')
+      end
+
+      def flash_cache_remove_drives(sys_id, request_body)
+        response = request(:post, "/devmgr/v2/storage-systems/#{sys_id}/flash-cache/removeDrives", request_body.to_json)
+        status(response, 200, 'Failed to remove drives to flash cache')
+      end
+
+     private
 
       # Determine the status of the response
       def status(response, expected_status_code, failure_message)
@@ -491,7 +948,8 @@ class NetApp
 
       # Make a call to the web proxy
       def request(method, path, body = nil)
-        Excon.send(method, @url, :path => path, :headers => web_proxy_headers, :body => body, :connect_timeout => @connect_timeout)
+	    #Puppet.debug("REAQUEST URL #{method} #{@url} #{path} #{@connect_timeout} #{body}")
+        response = Excon.send(method, @url, :path => path, :headers => web_proxy_headers, :body => body, :connect_timeout => @connect_timeout)
       end
 
       # Set headers for web proxy.

@@ -1,13 +1,54 @@
 {
-  "name": "netapp-eseries",
-  "version": "0.1.0",
-  "author": "NetApp",
+  "name": "netapp-netapp_e",
+  "version": "1.0.0",
+  "author": "netapp",
   "summary": "NetApp E-series storage arrays support for Puppet",
-  "license": "Apache 2.0",
-  "source": "https://github.com/NetApp/puppet-eseries",
-  "project_page": "https://github.com/NetApp/puppet-eseries",
-  "issues_url": "https://github.com/NetApp/puppet-eseries/issues",
+  "license": "Apache-2.0",
+  "source": "https://forge.puppetlabs.com/netapp/netapp_e",
+  "project_page": "https://forge.puppetlabs.com/netapp/netapp_e",
+  "issues_url": "https://forge.puppetlabs.com/netapp/netapp_e",
   "dependencies": [
     {"name":"puppetlabs-stdlib","version_requirement":">= 1.0.0"}
-  ]
+  ],
+  "data_provider": null,
+  "operatingsystem_support": [
+    {
+      "operatingsystem": "RedHat",
+      "operatingsystemrelease": [
+        "6",
+        "7"
+      ]
+    },
+    {
+      "operatingsystem": "CentOS",
+      "operatingsystemrelease": [
+        "6",
+        "7"
+      ]
+    },
+    {
+      "operatingsystem": "OracleLinux",
+      "operatingsystemrelease": [
+        "6",
+        "7"
+      ]
+    },
+    {
+      "operatingsystem": "SLES",
+      "operatingsystemrelease": [
+        "11 SP1"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "name": "pe",
+      "version_requirement": ">= 2015.2.0"
+    },
+    {
+      "name": "puppet",
+      "version_requirement": ">= 4.0.0"
+    }
+  ],
+  "description": "Module for Installation of NetApp SANtricity Web Proxy Server and Configuration of Storage Arrays via REST Calls to SANtricity Web Proxy Server"
 }

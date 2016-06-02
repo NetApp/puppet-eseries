@@ -13,9 +13,9 @@ Puppet::Type.newtype(:netapp_e_storage_system) do
   newparam(:name, :namevar => true) do
     desc 'Storage System ID'
     validate do |value|
-      unless value =~ /^\w+$/
-        fail("#{value} is not a valid storage system id.")
-      end
+     unless value =~ /^[a-zA-Z0-9_\-]{1,30}$/
+       fail("#{value} is not a valid storage system id.")
+     end
     end
   end
 
@@ -40,10 +40,16 @@ Puppet::Type.newtype(:netapp_e_storage_system) do
     end
 
     validate do |value|
-      value.each do |ip|
-        unless valid_ipv4?(ip) || valid_ipv6?(ip)
-          fail("#{value} is not a valid IP address")
+      if value.is_a?(Array)
+        value.each do |ip|
+          unless valid_ipv4?(ip) || valid_ipv6?(ip)
+            fail("#{value} is not a valid IP address")
+          end
         end
+      else
+        unless valid_ipv4?(value.to_s) || valid_ipv6?(value.to_s)
+            fail("#{value} is not a valid IP address")
+          end
       end
     end
   end

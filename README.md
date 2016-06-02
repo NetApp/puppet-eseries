@@ -1,4 +1,4 @@
-# puppet-eseries
+# netapp_e
 
 The NetApp E-Series module manages E-Series storage arrays using Puppet Network Device.
 
@@ -11,41 +11,125 @@ The NetApp E-Series module manages E-Series storage arrays using Puppet Network 
 
 ```puppet
 node 'puppet.node.local' {
+
+  #include class with to initialize default module parameters
   include netapp_e
+  
+  #OR comment above default block and uncomment below block to include parameterized class for Windows Agents
+  #class{ 'netapp_e':
+  #    owner			=> "administrator",
+  #    group			=> "administrators",
+  #	   mode				=> '0777',
+  #    device_conf_dir	=> "C:\Program Files\Puppet Labs\Puppet\puppet",
+  #}
 
-  # This will prepare puppet device configuration on node which have
-  # connection to SANtricity Web Proxy
+  #OR comment above default block and uncomment below block to include parameterized class for SUSE/Solaris Agents
+  #class{ 'netapp_e':
+  #    owner => root,
+  #    group => root,
+  #    device_conf_dir => '/etc/puppet',
+  #}
+  
+  #OR comment above default block and uncomment below block to include parameterized class for CentOS/Redhat
+  #class{ 'netapp_e':
+  #    owner => root,
+  #    group => root,
+  #}
 
-  $hostname = 'netapp.local'
-  netapp_e::config { $hostname:
-    username => $username,
-    password => $password,
-    url      => $hostname,
-    port     => '8080',
-    target   => "${::settings::confdir}/device/${hostname}"
+  #The below block will install/uninstall NetApp SANtricity Web Services Proxy on Linux Agent Node
+  class { 'netapp_e::web_proxy':
+      ensure 	      			 => 'installed', #Possible value for ensure 'installed' or 'absent'
+      install_file_name			 => 'webservice-01.20.7000.0005.bin', #Web Proxy Installation file kept in modules/netapp_e/files
+      install_file_location		 => '/opt', #This folder must exist on Agent Node
+	  install_dependent_packages => 'yes', #Only if 'LSB' is not already installed on linux
+  }
+  
+  #OR
+  #Comment above linux block and uncomment below block to install/uninstall NetApp SANtricity Web Services Proxy on Windows Agent Node
+  #class { 'netapp_e::web_proxy':
+  #    ensure						=> 'installed', #Possible value for ensure 'installed' or 'absent'
+  #    install_file_name			=> 'webservice-01.20.3000.0005.exe', #Web Proxy Installation file kept in modules/netapp_e/files
+  #    install_file_location		=> 'H:/setup', #This folder must exist on Agent Node
+  #	   install_dependent_packages	=> 'no', #No for windows agents always as windows don't need any LSB(Linux Standard Base) packages
+  #}
+
+  # Host/Domain name/IP address where SANtricity Web Proxy is installed or needs to be installed
+  $hostname = 'storage.device.local'
+  $username = 'rw'
+  $password = 'rw'
+  
+  #SANtricity web proxy puppet device configuration file name.
+  $proxy_device_config_file = 'proxy_device_config'
+
+  # The below block will create a puppet device configuration file on agent node which have connection details to SANtricity Web Proxy
+  netapp_e::config { $proxy_device_config_file:
+      username      => $username,
+      password      => $password,
+      url           => $hostname,
+      port          => '8080',
+      target        => "${netapp_e::device_conf_dir}/device/${proxy_device_config_file}.conf"
   }
 
-  # Set up a cron job for running puppet device periodically
+  # Set up a cron job for running puppet device periodically for CentOS/Redhat Agent Nodes
   cron { "netappe-puppet-device-run":
-    command => "puppet device --deviceconfig ${::settings::confdir}/device/${hostname}",
-    minute  => fqdn_rand(60),
+      command 	   => "puppet device --deviceconfig ${netapp_e::device_conf_dir}/device/${proxy_device_config_file}.conf -d",
+      minute  	   => fqdn_rand(60),
+	  environment  => "PATH=${::path}:/opt/puppetlabs/puppet/bin"
   }
+  # OR comment above block and uncomment below block to set up a cron job for running puppet device periodically for SUSE/Solaris Agent Nodes
+  #cron { "netappe-puppet-device-run":
+  #    command 	   => "puppet device --deviceconfig ${netapp_e::device_conf_dir}/device/${proxy_device_config_file}",
+  #    minute  	   => fqdn_rand(60),
+  #   environment  => "PATH=${::path}:/opt/puppet/bin"
+  #}
+  
+  # OR comment above block and uncomment below block to set up a scheduled task for running puppet device periodically on Windows Agent Nodes
+  #scheduled_task { 'netappe-puppet-device-run':
+  #    ensure      => present,
+  #    command     => 'C:/\"Program Files\"/\"Puppet Labs\"/Puppet/bin/puppet.bat',
+  #    arguments   => "device --deviceconfig ${netapp_e::device_conf_dir}/device/${proxy_device_config_file}.conf -d",
+  #    user        => 'Administrator',
+  #    password    => 'password@123',
+  #    enabled     => true,
+  #    trigger     => {
+  #        schedule   => daily,
+  #        every      => 1,            # Specifies every other day. Defaults to 1 (every day).
+  #        start_date => '2015-11-05', # Defaults to 'today'
+  #        start_time => '18:12',      # Must be specified
+  #  }
+  #}
+
+  # Get firmware upgrade version file from pupper server onto puppet agent machine
+  # Use the below block while upgrading CFW or NVSRAM firmware
+  $firmware_file = 'firmware_filename.dlp'
+  file { $firmware_file:
+      ensure    => file,
+      path      => "/root/${firmware_file}", #agent machine path to download file from puppet server
+      mode      => '0777',
+      source    => "puppet:///modules/netapp_e/${firmware_file}", #Firmware .dlp file kept in modules/netapp_e/files
+  }
+
 }
 
-node 'netapp.local' {
+###
+# Configurations to be executed on NetApp Storage Arrays view SANtricity Web Proxy
+# Node name must be same as proxy device configuration file name given in parameter $proxy_device_config_file.
+# The proxy device configuration file will contain the host/domain name of SANtricity Web Proxy
+###
+node 'proxy_device_config' {
 
   $status = present
   $storage_system = 'second'
 
   netapp_e_storage_system {$storage_system:
-    ensure      => $status,
-    controllers => ['10.250.117.116', '10.250.117.117'],
-    password    => 'Password_1234',
+      ensure      => $status,
+      controllers => ['10.250.117.116', '10.250.117.117'],
+      password    => 'Password_1234',
   }
 
   netapp_e_storage_system {'third':
-    ensure      => $status,
-    controllers => ['10.250.117.114', '10.250.117.115'],
+      ensure      => $status,
+      controllers => ['10.250.117.114', '10.250.117.115'],
   }
 
   # We need to wait before storage-system will be fully initialized. 	
@@ -200,6 +284,304 @@ node 'netapp.local' {
       mirror          => 'new-mirror-group'
     }
 
+    #Consistancy Group
+    #Create
+    netapp_e_consistency_group {'CG-GROUP-Create':
+      ensure                    => $status,
+      consistencygroup          => 'CG_GROUP1',
+      storagesystem             => $storage_system,
+      fullwarnthresholdpercent  => 75,
+      autodeletethreshold       => 32,
+      repositoryfullpolicy      => 'purgepit',
+      rollbackpriority          => 'medium',
+    }
+
+    #Create
+    netapp_e_consistency_group {'CG-GROUP-Create':
+      ensure                    => $status,
+      consistencygroup          => 'CG_GROUP2',
+      storagesystem             => $storage_system,
+    }
+
+    #Update
+    netapp_e_consistency_group {'CG-GROUP-Update':
+      ensure                    => $status,
+      consistencygroup          => 'CG_GROUP2',
+      storagesystem             => $storage_system,
+      fullwarnthresholdpercent  => 80,
+      autodeletethreshold       => 30,
+      repositoryfullpolicy      => 'purgepit',
+      rollbackpriority          => 'medium',
+    } 
+
+    #Delete
+    netapp_e_consistency_group {'CG-GROUP-Delete':
+      ensure                    => absent,
+      consistencygroup          => 'CG_GROUP1',
+      storagesystem             => $storage_system,
+    } 
+
+    #Consistancy Group Member
+    #Add Member
+    netapp_e_consistency_members {'Add-Volume':
+        ensure           => $status,
+        volume           => 'Volume-1',
+        storagesystem    => $storage_system,
+        consistencygroup => 'CG-GROUP',
+        repositorypool   => 'Disk_Pool_1',
+        scanmedia        => true,
+        validateparity   => true,
+        repositorypercent => 10,
+    }
+
+    #Remove Member
+    netapp_e_consistency_members {'Remove-Volume':
+        ensure           => $status,
+        volume           => 'Volume-1',
+        storagesystem    => $storage_system,
+        consistencygroup => 'CG-GROUP',
+    } 
+
+    $volumes = [{
+                  repositorypool    => 'Disk_Pool_1',
+                  volume            => 'Volume-1',
+                  scanmedia         => true,
+                  validateparity    => true,
+                  repositorypercent => 10,
+                },
+                {
+                  repositorypool    => 'Disk_Pool_1',
+                  volume            => 'Volume-2',
+                  scanmedia         => true,
+                  validateparity    => true,
+                  repositorypercent => 10,
+                }]
+
+    netapp_e_consistency_multiple_members{ 'ADD-BATCH-VOLUMES':
+        volumes             => $volumes,
+        storagesystem       => $storage_system,
+        consistencygroup    => 'CG-GROUP',
+    }
+
+    #Consistancy Group Snapshots
+    #Create Snapshot
+    netapp_e_consistency_group_snapshot {'CG-GROUP-Snap1':
+        ensure              => $status,
+        consistencygroup    => 'CG-GROUP',
+        storagesystem       => $storage_system,
+    }
+    
+    #Remove Oldest Snapshot
+    netapp_e_consistency_group_snapshot {'CG-GROUP-Snap1-Delete':
+        ensure              => absent,
+        consistencygroup    => 'CG-GROUP',
+        storagesystem       => $storage_system,
+    }
+
+    #Rollback Consistency Group to an Older Snapshot
+    netapp_e_consistency_group_rollback {'CG-555-Rollback':
+        snapshotnumber      =>  53,
+        consistencygroup    => 'CG-555',
+        storagesystem       => $storage_system,
+    }
+
+    #Consistancy Group Snapshots Views
+    #Create Snapshot View for all volumes in the snapshot
+    netapp_e_consistency_group_snapshot_view {'CG-GROUP-View1':
+        ensure              => $status,
+        viewname            =>'CG-GROUP-View1',
+        storagesystem       => $storage_system,
+        consistencygroup    => 'CG-GROUP',
+        snapshotnumber      => 74,
+        viewtype            => 'bySnapshot',
+        validateparity      => false,
+    }
+
+    #Create Snapshot View for a single volume in the snapshot
+    netapp_e_consistency_group_snapshot_view {'CG-GROUP-View2':
+        viewname            =>'CG-GROUP-View2',
+        ensure              => $status,
+        storagesystem       => $storage_system,
+        consistencygroup    => 'CG-GROUP',
+        snapshotnumber      => 74,
+        viewtype            => 'byVolume',
+        volume              => 'Test-Vol-1',
+        validateparity      => false,
+        repositorypool      => 'DiskPool1',
+        scanmedia           => true,
+        repositorypercent   => 75,
+        accessmode          => 'readWrite',
+
+    }
+
+    #Consistancy Group Snapshots Views
+    #Remove Snapshot View
+    netapp_e_consistency_group_snapshot_view {'CG-GROUP-View1-Delete':
+        viewname            =>'CG-GROUP-View1',
+        ensure              => absent,
+        storagesystem       => $storage_system,
+        consistencygroup    => 'CG-GROUP',
+    }
+
+    $firmware_file = 'N5468-820834-DB5.dlp'
+
+    #Upload firmware file
+    netapp_e_firmware_file{ 'upload_firmware_file':
+        filename            => $firmware_file,
+        folderlocation      => 'C://upgrade', #agent machine path where firmware file downloaded from puppet server
+        ensure              => $status, 
+        validate_file       => true,
+    }
+
+    #Delete firmware file
+    netapp_e_firmware_file{ 'delete_firmware_file':
+        ensure              => 'absent', 
+        filename            => $firmware_file,
+    }
+
+    #Upgrade nvsram firmware with compatibility check skipping and mel check and waiting for completion until execution of next resource
+    netapp_e_firmware_upgrade{ 'upgrade_firmware' :
+        ensure              => 'upgraded',
+        storagesystem       => $storage_system,
+        filename            => $firmware_file,
+        firmwaretype        => 'nvsramfile',
+        melcheck            => true,
+        compatibilitycheck  => true,
+        releasedbuildonly   => true,
+        waitforcompletion   => true,
+    }
+
+    # Upgrade cfw firmware skipping mel check and without compatibility check and not waiting for completion of execution of the resource
+    netapp_e_firmware_upgrade{ 'upgrade_firmware' :
+        ensure              => 'upgraded',
+        storagesystem       => $storage_system,
+        filename            => $firmware_file,
+        firmwaretype        => 'cfwfile',
+        melcheck            => false,
+        compatibilitycheck  => false,
+        waitforcompletion   => false,
+    }
+
+    #Stage nvsram firmware with compatibility check skipping and mel check and waiting for completion until execution of next resource
+    netapp_e_firmware_upgrade{ 'stage_firmware' :
+        ensure              => 'staged',
+        storagesystem       => $storage_system,
+        filename            => $firmware_file,
+        firmwaretype        => 'nvsramfile',
+        melcheck            => true,
+        compatibilitycheck  => true,
+        releasedbuildonly   => true,
+        waitforcompletion   => true,
+    }
+
+    #Stage cfw firmware skipping mel check and without compatibility check and not waiting for completion of execution of the resource
+    netapp_e_firmware_upgrade{ 'stage_firmware' :
+        ensure              => 'staged',
+        storagesystem       => $storage_system,
+        filename            => $firmware_file,
+        firmwaretype        => 'cfwfile',
+        melcheck            => false,
+        compatibilitycheck  => false,
+        waitforcompletion   => false,
+    }
+
+    #Activate nvsram firmware skipping mel check and waiting for completion until execution of next resource
+    netapp_e_firmware_upgrade{ 'activate_firmware' :
+        ensure              => 'activated',
+        storagesystem       => $storage_system,
+        firmwaretype        => 'nvsramfile',
+        melcheck            => false,
+        waitforcompletion   => true,
+    }
+
+    #Activate cfw firmware with mel check and without waiting for completion of execution of this resource
+    netapp_e_firmware_upgrade{ 'activate_firmware' :
+        ensure              => 'activated',
+        storagesystem       => $storage_system,
+        firmwaretype        => 'cfwfile',
+        melcheck            => true,
+        waitforcompletion   => false,
+    }
+
+    #Upgrade NetApp SANtricity Web Services Proxy
+    #Download and install new version
+    netapp_e_web_proxy_upgrade{ 'upgrade_web_proxy':
+        ensure  => 'upgraded',
+        force   => 'true',
+    }
+
+    #Stage NetApp SANtricity Web Services Proxy
+    #Stage new version
+    netapp_e_web_proxy_upgrade{ 'stage_web_proxy':
+        ensure  => 'staged',
+        force   => 'true',
+    }
+
+    #Activate staged version of Santricity Web Proxy Server
+    netapp_e_web_proxy_upgrade{ 'activate_web_proxy':
+        ensure  => 'activated',
+    }
+
+    $diskIds = [ "010000005001E8200002D1A80000000000000000",
+                 "010000005001E8200002D20C0000000000000000"]
+    #Flash Cache
+    #Create Flash Cache
+    netapp_e_flash_cache {'createBlock':
+        ensure                => created,
+        cachename             => 'SSD_1',
+        storagesystem         => $storage_system,
+        diskids               =>  $diskIds,
+        enableexistingvolumes =>  false,
+    }
+
+    #Suspend Flash Cache
+    netapp_e_flash_cache {'suspendBlock':
+        ensure               => suspended,
+        cachename            => 'SSD_1',
+        storagesystem        => $storage_system,
+        ignorestate          => false,
+    }
+
+    #Resume Flash Cache
+    netapp_e_flash_cache {'ResumeBlock':
+        ensure               => resumed,
+        cachename            => 'SSD_1',
+        storagesystem        => $storage_system,
+        ignorestate          => true,
+    }
+
+    #Update Flash Cache
+    netapp_e_flash_cache {'updateBlock':
+        ensure              => updated,
+        cachename           => 'SSD_1',
+        storagesystem       => $storage_system,
+        newname             => 'SSD_12',
+        configtype          => 'database',
+    }
+
+    #Delete Flash Cache
+    netapp_e_flash_cache {'deleteBlock':
+        ensure              => deleted,
+        cachename           => 'SSD_1',
+        storagesystem       => $storage_system,
+    }
+  
+    #Flash Cache Drives
+    #Add flash Cache drives
+    netapp_e_flash_cache_drives {'addFlashCacheDrives':
+        ensure              => present,
+        cachename           => 'SSD_1',
+        storagesystem       => $storage_system,
+        diskids             =>  $diskIds,
+    }
+
+    #Remove flash Cache drives
+    netapp_e_flash_cache_drives {'removeFlashCacheDrives':
+        ensure              => absent,
+        cachename           => 'SSD_1',
+        storagesystem       => $storage_system,
+        diskids             =>  $diskIds,
+    }
 
   } else {
     notice("Wait to initialize storage-system: ${storage_system}")
@@ -209,16 +591,33 @@ node 'netapp.local' {
   if $status == present {
     Netapp_e_storage_system <| |> -> Netapp_e_storage_pool <| |> -> Netapp_e_volume <| |> ->
     Netapp_e_volume_copy <| |> -> Netapp_e_snapshot_group <| |> -> Netapp_e_host_group <| |> -> 
-    Netapp_e_host <| |> -> Netapp_e_map <| |> -> Netapp_e_mirror_group <| |> -> Netapp_e_mirror_members <| |>
+    Netapp_e_host <| |> -> Netapp_e_map <| |> -> Netapp_e_mirror_group <| |> -> Netapp_e_mirror_members <| |> -> 
+	  Netapp_e_consistency_group <| |> -> Netapp_e_consistency_members <| |> -> Netapp_e_consistency_multiple_members <| |> ->
+	  Netapp_e_consistency_group_snapshot <| |> -> Netapp_e_consistency_group_rollback <| |> -> 
+    Netapp_e_consistency_group_snapshot_view <| |>-> Netapp_e_flash_cache <||>-> Netapp_e_flash_cache_drives <||>
   }
   elsif $status == absent {
-    Netapp_e_mirror_members <| |> -> Netapp_e_mirror_group <| |> -> Netapp_e_map <| |> ->  Netapp_e_host <| |> ->
-    Netapp_e_host_group <| |> -> Netapp_e_snapshot_group <| |> -> Netapp_e_volume_copy <| |> ->
-    Netapp_e_volume <| |> -> Netapp_e_storage_pool <| |> -> Netapp_e_storage_system <| |>
+    Netapp_e_flash_cache_drives <||>-> Netapp_e_flash_cache <||>->
+    Netapp_e_consistency_group_snapshot_view <| |> -> Netapp_e_consistency_group_rollback <| |> -> 
+    Netapp_e_consistency_group_snapshot <| |> -> Netapp_e_consistency_multiple_members <| |> -> Netapp_e_consistency_members <| |> -> Netapp_e_consistency_group <| |> -> Netapp_e_mirror_members <| |> -> Netapp_e_mirror_group <| |> -> Netapp_e_map <| |> ->  Netapp_e_host <| |> -> Netapp_e_host_group <| |> -> Netapp_e_snapshot_group <| |> -> Netapp_e_volume_copy <| |> ->
+    Netapp_e_volume <| |> -> Netapp_e_storage_pool <| |> -> Netapp_e_storage_system <| |> 
   }
+  
 }
 ```
 ## Reference ##
+
+netapp_e::web_proxy_config
+-----------
+SANtricity Web Services Proxy installation
+
+### Attributes ###
+
+* `ensure` Ensure that netappweb_service will be installed or absent
+* `install_file_name` Name of the installation file inside the folder named files in the module
+* `install_file_location` Location where the installation file will be copied
+* `install_dependent_packages` Enable or disable installation of dependent packages
+
 
 netapp_e_storage_system
 -----------
@@ -463,14 +862,179 @@ netapp_e_password {'sys_id':
   force   => false,
 }
 ```
+netapp_e_consistency_group
+-----------
+Manage Netapp E series consistency groups
+
+### Attributes ###
+
+* `consistencygroup` The user-label to assign to the new consistency group.
+* `storagesystem` Group storage system id.
+* `fullwarnthresholdpercent` The full warning threshold percent.
+* `autodeletethreshold` The auto-delete threshold. Automatically delete snapshots after this many..
+* `repositoryfullpolicy` The repository full policy. Possible Values ('purgepit', 'failbasewrites').
+* `rollbackpriority` Roll-back priority. Possible Values ('highest', 'high', 'medium', 'low', 'lowest')
+
+netapp_e_consistency_members
+-----------
+Manage Netapp E series consistency group members
+
+### Attributes ###
+
+* `volume` Member Volume name.
+* `storagesystem` Group storage system id.
+* `consistencygroup` Consistency Group Name.
+* `repositorypool` The repository volume pool.
+* `scanmedia` (boolean)
+* `validateparity` (boolean) Validate repository parity.
+* `repositorypercent` Repository Percent
+* `retainrepositories` (boolean) Delete all repositories assosiated with the member volume. (Use when want to remove member volume)
+
+netapp_e_consistency_multiple_members
+-----------
+Manage Netapp E series consistency group members
+
+### Attributes ###
+
+* `name` The user-label to assign for volume batch insert.
+* `storagesystem` Group storage system id.
+* `consistencygroup` Consistency Group Name.
+* `volumes` (array of hashes) Volumes details.
+
+### Attributes for volumes ###
+
+* `volume` Member Volume name.
+* `repositorypool` The repository volume pool.
+* `scanmedia` (boolean)
+* `validateparity` (boolean) Validate repository parity.
+* `repositorypercent` Repository Percent
+
+netapp_e_consistency_group_snapshot
+-----------
+Manage Netapp E series consistency group snapshots
+
+### Attributes ###
+
+* `consistencygroup` The user-label to assign to the new consistency group.
+* `storagesystem` Group storage system id.
+
+
+netapp_e_consistency_group_rollback
+-----------
+Manage Netapp E series consistency group rollbacks
+
+### Attributes ###
+
+* `snapshotnumber` The sequence number of snapshot to which the Consistency Group needs to be roll backed.
+* `storagesystem` Group storage system id.
+* `consistencygroup` Consistency Group Name.
+
+netapp_e_consistency_group_snapshot_view
+-----------
+Manage Netapp E series consistency group snapshot views
+
+### Attributes ###
+
+* `viewname` The user-label to assign for volume batch insert.
+* `storagesystem` Group storage system id.
+* `consistencygroup` Consistency Group Name.
+* `snapshotnumber` The sequence number of snapshot to which the Consistency Group needs to be roll backed.
+* `viewtype` Value 'byVolume' ensures that the view should be created only for the mentioned volume from the consistency group snapshot. Value 'bySnapshot' ensures that views for all the volumes in consistency group snapshot are created
+* `volume` Name of the volume from snapshot whose view needs to be created
+* `scanmedia` (boolean)
+* `validateparity` (boolean) Validate repository parity.
+* `repositorypercent` The repository utilization warning threshold percentage.
+* `accessmode` The view access mode. Possible values: 'readWrite', 'readOnly'
+* `repositorypool` The name of the Storage Pool in which the view should be created.
+
+
+netapp_e_firmware_file
+-----------
+Manage Netapp E series firmware cwf file for upload and delete on server
+
+### Attributes ###
+
+* `filename` Name of NVSRAM or Controller Firmware file (cwfFile/nvsramFile) name.
+* `folderlocation` Folder Location of NVSRAM or Controller Firmware file from where it is to be uploaded.
+* `validate_file` Check if the Firmware file is valid or not.
+
+
+netapp_e_firmware_upgrade
+------------
+Manage Netapp E series firmware upgrade operation
+
+### Attributes ###
+
+* `filename` Name of NVSRAM or Controller Firmware file name.
+* `firmwaretype` Possible values('cfwfile','nvsramfile'). 'cfwfile' will upgrade Controller firmware. 'nvsramfile' will upgrade NVSRAM firmware.
+* `storagesystem` Group storage system id.
+* `melcheck` If it is true and any issues found in mel check, firmware would not be upgraded. If it is false, the issues will be ignored and firmware will be upgraded.
+* `compatibilitycheck` True will check the compatibility of uploaded firmware version with the storage array. False will not perform the check. Firmware will not be upgraded if check is enabled and compatibility fails.
+* `releasedbuildonly` Only consider released firmware builds as valid Controller Firmware files for checking the compatibility.
+* `waitforcompletion` true will wait for upgrade process to complete successfully. false will request to start the upgrade process and would not monitor success.
+* `ensure` Possible values('upgraded','staged','activated')
+
+
+netapp_e_web_proxy_upgrade
+-----------
+Manage Netapp E series SANtricity Web Services Proxy upgrade operation
+
+### Attributes ###
+
+* `name` Name of netapp_e_web_proxy_upgrade manifest block
+* `ensure` Possible values('upgraded','staged','activated')
+* `force` String value.
+
+netapp_e_flash_cache
+-----------
+Manage Netapp E series SANtricity Web Services Flash Cache operation
+
+### Attributes ###
+
+* `name` Name of netapp_e_flash_cache manifest block.
+* `cachename` Name of flash cache.
+* `storagesystem` Storage system ID.
+* `ensure` Possible values('created','suspended','resumed','updated','deleted').
+* `diskids` Array of disk drive ids.
+* `enableexistingvolumes` To enable existing volumes or not. Possible values('true','false').
+* `newname` New name of flash cache.
+* `configtype` Config type of flash cache. Possible values('database','multimedia','filesystem').
+* `ignorestate` Possible values('true','false')
+
+netapp_e_flash_cache_drives
+-----------
+Manage Netapp E series SANtricity Web Services Flash Cache Drives operation
+
+### Attributes ###
+
+* `name` Name of netapp_e_flash_cache manifest block.
+* `cachename` Name of flash cache.
+* `storagesystem` Storage system ID.
+* `ensure` Possible values('present','absent').
+* `diskids` Array of disk drive ids.
+
+
+## Limitations ##
+
+This module is tested against both [Open Source Puppet][] and [Puppet Enterprise][] on:
+
+- CentOS 7
+- Windows
+- RedHat
+
+This module also provides functions for other distributions and operating systems, such as Debian, SUSE, and Solaris, but is not formally tested on them and are subject to regressions.
+
+- NetApp SANtricity Web Services Proxy version 1.3 supported.
+
 
 ## Contributing ##
 
 Before creating pull request, run the tests and ensure that all Rspec pass.
 You can also check acceptance test which can be found in [acceptancetests directory](acceptancetests/README.md)
 
+
 ## Authors & Contributors ##
 
-* Michał Skalski <mskalski@mirantis.com>
-* Andrzej Skupień <askupien@mirantis.com>
-* Denys Kravchenko <dkravchenko@mirantis.com>
+* Janet Blagg <Janet.Blagg@netapp.com>
+* Matt Tangvald <Matt.Tangvald@netapp.com>
+* Frank Poole <Frank.Poole@netapp.com>

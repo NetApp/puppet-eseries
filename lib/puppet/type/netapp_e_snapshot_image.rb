@@ -6,7 +6,7 @@ Puppet::Type.newtype(:netapp_e_snapshot_image) do
 
   validate do
     raise Puppet::Error, 'You must specify a snapshot group.' unless @parameters.include?(:group)
-    raise Puppet::Error, 'You must specify a schedule how often do a snapshot.' unless @parameters.include?(:schedule)
+    #raise Puppet::Error, 'You must specify a schedule how often do a snapshot.' unless @parameters.include?(:schedule)
   end
 
   newparam(:name, :namevar => true) do

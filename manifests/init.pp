@@ -11,17 +11,12 @@
 # Sample Usage:
 #
 class netapp_e (
+  $device_conf_dir = $netapp_e::params::device_conf_dir,
   $owner = $netapp_e::params::owner,
   $group = $netapp_e::params::group,
   $provider = $netapp_e::params::provider,
   $mode = $netapp_e::params::mode
 ) inherits netapp_e::params {
-  if !defined(File["${settings::confdir}/device"]) {
-    file { "${settings::confdir}/device":
-      ensure => directory,
-      owner  => $owner,
-      group  => $group,
-      mode   => $mode,
-    }
-  }
+
+
 }

@@ -11,7 +11,7 @@
 # Sample Usage:
 #
 class netapp_e::params {
-  if $::puppetversion =~ /Puppet Enterprise/ {
+  if ($::puppetversion != undef) and ($::puppetversion =~ /Puppet Enterprise/) {
     $owner = 'pe-puppet'
     $group = 'pe-puppet'
   } else {
@@ -19,4 +19,5 @@ class netapp_e::params {
     $group = 'puppet'
   }
   $mode = '0644'
+  $device_conf_dir = $::settings::confdir
 }

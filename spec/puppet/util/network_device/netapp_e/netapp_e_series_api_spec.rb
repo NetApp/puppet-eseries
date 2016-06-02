@@ -110,6 +110,217 @@ shared_examples 'a call for entity id based on storage system' do |uri_suffix, t
   end
 end
 
+shared_examples 'a call for entity id based on storage system and by entity name' do |uri_suffix, tested_method|
+  before(:each) do
+    @sys_id = 'sys_id'
+    @expect_in_request[:url] = @url + "/devmgr/v2/storage-systems/#{@sys_id}/#{uri_suffix}"
+    @method = @netapp_api.method(tested_method)
+  end
+  it 'should return false if name does not match given name' do
+    name = 'name'
+    @response[:body] = JSON.generate([{ 'id' => 'entity_id',
+                                        'name' => 'not_name',
+                                        'key' => 'value' },
+                                      { 'id' => 'entity_id2',
+                                        'name' => 'not_name2',
+                                        'key' => 'value' }
+                                     ])
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, name).to be false
+  end
+
+  it 'should return false if storage system do not have entities' do
+    name = 'name'
+    @response[:body] = JSON.generate([])
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, name).to eq(false)
+  end
+
+  it 'should return entity id if name matches given name' do
+    name = 'name'
+    @response[:body] = JSON.generate([{ 'id' => 'entity_id',
+                                        'name' => 'not_name',
+                                        'key' => 'value' },
+                                      { 'id' => 'entity_id2',
+                                        'name' => name,
+                                        'key' => 'value' }
+                                     ])
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, name).to eq('entity_id2')
+  end
+
+  it 'should raise RuntimeError if status code is not 200' do
+    @response[:status] = 404
+    Excon.stub(@expect_in_request, @response)
+    expect { @method.call @sys_id, 'name' }.to raise_status_error(fail_message, @response)
+  end
+end
+
+shared_examples 'a call for entity id based on storage system and by entity base volume' do |uri_suffix, tested_method|
+  before(:each) do
+    @sys_id = 'sys_id'
+    @cg_id = 'cg_id'
+    @seq_no = 'seq_no'
+    @expect_in_request[:url] = @url + "/devmgr/v2/storage-systems/#{@sys_id}/consistency-groups/#{@cg_id}/#{uri_suffix}/#{@seq_no}"
+    @method = @netapp_api.method(tested_method)
+  end
+  it 'should return false if basevol does not match given base volume' do
+    basevol = 'basevol'
+    @response[:body] = JSON.generate([{ 'id' => 'entity_id',
+                                        'baseVol' => 'not_basevol',
+                                        'key' => 'value' ,
+                                        'pitRef' => 'entity_ref'},
+                                      { 'id' => 'entity_id2',
+                                        'baseVol' => 'not_basevol',
+                                        'key' => 'value',
+                                        'pitRef' => 'entity_ref2'  }
+                                     ])
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, @cg_id, @seq_no, basevol).to be false
+  end
+
+  it 'should return false if storage system do not have entities' do
+    basevol = 'basevol'
+    @response[:body] = JSON.generate([])
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, @cg_id, @seq_no, basevol).to eq(false)
+  end 
+
+  it 'should return entity id if basevol matches given base volume ' do
+    basevol = 'basevol'
+    @response[:body] = JSON.generate([{ 'id' => 'entity_id',
+                                        'baseVol' => 'not_basevol',
+                                        'key' => 'value',
+                                        'pitRef' => 'entity_ref' },
+                                      { 'id' => 'entity_id2',
+                                        'baseVol' => basevol,
+                                        'key' => 'value',
+                                        'pitRef' => 'entity_ref2' }
+                                     ])
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, @cg_id, @seq_no, basevol).to eq('entity_ref2')
+  end
+
+  it 'should raise RuntimeError if status code is not 200' do
+    @response[:status] = 404
+    Excon.stub(@expect_in_request, @response)
+    expect { @method.call @sys_id, @cg_id , @seq_no, 'basevol' }.to raise_status_error(fail_message, @response)
+  end
+end
+
+shared_examples 'a call for entity id based on storage system and by entity volume name' do |uri_suffix, tested_method|
+  before(:each) do
+    @sys_id = 'sys_id'
+    @cg_id = 'cg_id'
+    @seq_no = 'seq_no'
+    @expect_in_request[:url] = @url + "/devmgr/v2/storage-systems/#{@sys_id}/#{uri_suffix}"
+    @method = @netapp_api.method(tested_method)
+  end
+  it 'should return false if name does not match given name' do
+    name = 'name'
+    @response[:body] = JSON.generate([{ 'id' => 'entity_id',
+                                        'name' => 'not_name',
+                                        'key' => 'value' },
+                                      { 'id' => 'entity_id2',
+                                        'name' => 'not_name2',
+                                        'key' => 'value' }
+                                     ])
+    Excon.stub(@expect_in_request, @response)
+    @expect_in_request[:url] = @url + "/devmgr/v2/storage-systems/#{@sys_id}/thin-volumes"
+    @method = @netapp_api.method(tested_method)
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, name).to be false
+  end
+
+  it 'should return false if storage system do not have entities' do
+    name = 'name'
+    @response[:body] = JSON.generate([])
+    @expect_in_request[:url] = @url + "/devmgr/v2/storage-systems/#{@sys_id}/#{uri_suffix}"
+    Excon.stub(@expect_in_request, @response)
+    @expect_in_request[:url] = @url + "/devmgr/v2/storage-systems/#{@sys_id}/thin-volumes"
+    @method = @netapp_api.method(tested_method)
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, name).to eq(false)
+  end
+
+  it 'should return entity id if name matches given name' do
+    name = 'name'
+    @response[:body] = JSON.generate([{ 'id' => 'entity_id',
+                                        'name' => 'not_name',
+                                        'key' => 'value' },
+                                      { 'id' => 'entity_id2',
+                                        'name' => 'name1',
+                                        'key' => 'value' }
+                                     ])
+    Excon.stub(@expect_in_request, @response)
+    @expect_in_request[:url] = @url + "/devmgr/v2/storage-systems/#{@sys_id}/#{uri_suffix}"    
+    @response[:body] = JSON.generate([{ 'id' => 'entity_id',
+                                        'name' => 'not_name',
+                                        'key' => 'value' },
+                                      { 'id' => 'entity_id2',
+                                        'name' => name,
+                                        'key' => 'value' }
+                                     ])
+    @expect_in_request[:url] = @url + "/devmgr/v2/storage-systems/#{@sys_id}/thin-volumes"
+    @method = @netapp_api.method(tested_method)
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, name).to eq('entity_id2')
+  end
+
+  it 'should raise RuntimeError if status code is not 200' do
+    @response[:status] = 404
+    Excon.stub(@expect_in_request, @response)
+    expect { @method.call @sys_id, 'name' }.to raise_status_error(fail_message, @response)
+  end
+end
+
+shared_examples 'a call for entity id based on storage system and by entity view name' do |uri_suffix, tested_method|
+  before(:each) do
+    @sys_id = 'sys_id'
+    @cg_id = 'cg_id'
+    @expect_in_request[:url] = @url + "/devmgr/v2/storage-systems/#{@sys_id}/consistency-groups/#{@cg_id}/#{uri_suffix}"
+    @method = @netapp_api.method(tested_method)
+  end
+  it 'should return false if name does not match given name' do
+    name = 'name'
+    @response[:body] = JSON.generate([{ 'id' => 'entity_id',
+                                        'name' => 'not_name',
+                                        'key' => 'value' },
+                                      { 'id' => 'entity_id2',
+                                        'name' => 'not_name2',
+                                        'key' => 'value' }
+                                     ])
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, @cg_id, name).to be false
+  end
+
+  it 'should return false if storage system do not have entities' do
+    name = 'name'
+    @response[:body] = JSON.generate([])
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, @cg_id, name).to eq(false)
+  end
+
+  it 'should return entity id if name matches given name' do
+    name = 'name'
+    @response[:body] = JSON.generate([{ 'id' => 'entity_id',
+                                        'name' => 'not_name',
+                                        'key' => 'value' },
+                                      { 'id' => 'entity_id2',
+                                        'name' => name,
+                                        'key' => 'value' }
+                                     ])
+    Excon.stub(@expect_in_request, @response)
+    expect(@method.call @sys_id, @cg_id, name).to eq('entity_id2')
+  end
+
+  it 'should raise RuntimeError if status code is not 200' do
+    @response[:status] = 404
+    Excon.stub(@expect_in_request, @response)
+    expect { @method.call @sys_id, @cg_id, 'name' }.to raise_status_error(fail_message, @response)
+  end
+end
+
 describe NetApp::ESeries::Api do
   before(:each) do
     @user = 'user'
@@ -630,4 +841,511 @@ describe NetApp::ESeries::Api do
       expect { @netapp_api.get_mirror_members 'sys_id', 'mg_id' }.to raise_status_error('Failed to get mirror group members', @response)
     end
   end
+
+  context 'get_consistency_groups' do
+    it_behaves_like 'a call based on storage systems', 'consistency-groups' do
+      let(:method_call) { @netapp_api.get_consistency_groups }
+      let(:fail_message) { 'Failed to get consistency groups' }
+    end
+  end
+
+  context 'create_consistency_group' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/consistency-groups' }
+      let(:method_call) { @netapp_api.create_consistency_group 'sys_id', @request_body }
+      let(:fail_message) { 'Failed to create consistency group' }
+    end
+  end
+
+  context 'delete_consistency_group' do
+    it_behaves_like 'a simple API call', :delete, 204 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/consistency-groups/cg_id' }
+      let(:method_call) { @netapp_api.delete_consistency_group 'sys_id', 'cg_id' }
+      let(:fail_message) { 'Failed to remove consistency group' }
+    end
+  end
+
+  context 'update_consistency_group' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/consistency-groups/cg_id' }
+      let(:method_call) { @netapp_api.update_consistency_group 'sys_id','cg_id', @request_body }
+      let(:fail_message) { 'Failed to update consistency group' }
+    end
+  end
+
+  context 'get_all_consistency_group_member_volumes' do
+    it_behaves_like 'a call based on storage systems', 'consistency-groups/member-volumes' do
+      let(:method_call) { @netapp_api.get_all_consistency_group_member_volumes }
+      let(:fail_message) { 'Failed to get consistency groups member volumes' }
+    end
+  end
+
+  context 'get_consistency_group_members' do
+    before(:each) do
+      @expect_in_request[:url] = @url + '/devmgr/v2/storage-systems/sys_id/consistency-groups/cg_id/member-volumes'
+    end
+    it 'should return parsed body if status code is 200' do
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.get_consistency_group_members 'sys_id', 'cg_id').to eq(@body)
+    end
+    it 'should raise RuntimeError if status code is not 200' do
+      @response[:status] = 404
+      Excon.stub(@expect_in_request, @response)
+      expect { @netapp_api.get_consistency_group_members 'sys_id', 'cg_id' }.to raise_status_error('Failed to get consistency group member', @response)
+    end
+  end
+
+  context 'add_consistency_group_member' do
+    it_behaves_like 'a simple API call', :post, 201 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/consistency-groups/cg_id/member-volumes' }
+      let(:method_call) { @netapp_api.add_consistency_group_member 'sys_id','cg_id', @request_body }
+      let(:fail_message) { 'Failed to create consistency group member' }
+    end
+  end
+
+  context 'get_consistency_group_member_volume' do
+    before(:each) do
+      @expect_in_request[:url] = @url + '/devmgr/v2/storage-systems/sys_id/consistency-groups/cg_id/member-volumes/vol_id'
+    end
+    it 'should return parsed body if status code is 200' do
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.get_consistency_group_member_volume 'sys_id', 'cg_id', 'vol_id').to eq(@body)
+    end
+    it 'should raise RuntimeError if status code is not 200' do
+      @response[:status] = 404
+      Excon.stub(@expect_in_request, @response)
+      expect { @netapp_api.get_consistency_group_member_volume 'sys_id', 'cg_id', 'vol_id'}.to raise_status_error('Failed to get consistency group member volumes', @response)
+    end
+  end
+
+  # context 'remove_consistency_group_member' do
+  #   it_behaves_like 'a simple API call', :delete, 204 do
+  #     let(:uri) { '/devmgr/v2/storage-systems/sys_id/consistency-groups/cg_id/member-volumes/vol_id?retainRepositories=is_retainrepositories' }
+  #    #let(:query) { 'retainRepositories=is_retainrepositories' }
+  #     let(:method_call) { @netapp_api.remove_consistency_group_member 'sys_id', 'cg_id', 'vol_id', 'is_retainrepositories' }
+  #     let(:fail_message) { 'Failed to delete consistency group member volumes' }
+  #   end
+  # end
+
+  context 'get_consistency_group_id' do
+    it_behaves_like 'a call for entity id based on storage system and by entity name', 'consistency-groups', :get_consistency_group_id  do
+      let(:fail_message) { 'Failed to get consistency groups for specified storage system' }
+    end
+  end
+
+  context 'get_consistency_group_snapshots' do
+    before(:each) do
+      @expect_in_request[:url] = @url + '/devmgr/v2/storage-systems/sys_id/consistency-groups/cg_id/snapshots'
+    end
+    it 'should return parsed body if status code is 200' do
+      @body = [{ 'id' => 'id_1',
+               'first_key' => 'first_value1',
+               'second_key' => 'second_value2',
+               'third_key' => 'third_value3' ,
+               'storagesystem' => 'sys_id'},
+             { 'id' => 'id_2',
+               'first_key' => 'first_value1',
+               'second_key' => 'second_value2',
+               'third_key' => 'third_value3',
+               'storagesystem' => 'sys_id'
+             }]
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.get_consistency_group_snapshots 'sys_id', 'cg_id').to eq(@body)
+    end
+    it 'should raise RuntimeError if status code is not 200' do
+      @response[:status] = 404
+      Excon.stub(@expect_in_request, @response)
+      expect { @netapp_api.get_consistency_group_snapshots 'sys_id', 'cg_id' }.to raise_status_error('Failed to get snapshot group information', @response)
+    end
+  end
+
+  context 'get_all_consistency_group_snapshots' do
+    it 'should return parsed body if status code is 200' do
+      
+      cg_groups = [{'id' => '123456','label' => 'CGName1','storagesystem' => 'ssid1617'},
+                  {'id' => '123789','label' => 'CGName2','storagesystem' => 'ssid1819'}] 
+
+      expect(@netapp_api).to receive(:get_all_consistency_groups) { cg_groups }
+
+      cg_snapshot_by_cg_id = { '123456' =>[ {'id' => '123','label' => 'CGSnap1','storagesystem' => 'ssid1617','consistencygroup'=>'CGName1'},
+        {'id' => '234','label' => 'CGSnap2','storagesystem' => 'ssid1617','consistencygroup'=>'CGName1'}],
+
+         '123789' =>[ {'id' => '345','label' => 'CGSnap3','storagesystem' => 'ssid1819','consistencygroup'=>'CGName2'},
+        {'id' => '456','label' => 'CGSnap4','storagesystem' => 'ssid1819','consistencygroup'=>'CGName2'}]
+      }
+      cg_groups.each do |curcg|
+          expect(@netapp_api).to receive(:get_consistency_group_snapshots).with(curcg['storagesystem'],
+                                                                      curcg['id']) { cg_snapshot_by_cg_id[curcg['id']] }
+      end
+      cg_snap_response = [ {'id' => '123','label' => 'CGSnap1','storagesystem' => 'ssid1617','consistencygroup'=>'CGName1'},
+        {'id' => '234','label' => 'CGSnap2','storagesystem' => 'ssid1617','consistencygroup'=>'CGName1'},
+        {'id' => '345','label' => 'CGSnap3','storagesystem' => 'ssid1819','consistencygroup'=>'CGName2'},
+        {'id' => '456','label' => 'CGSnap4','storagesystem' => 'ssid1819','consistencygroup'=>'CGName2'}]
+      
+      expect(@netapp_api.get_all_consistency_group_snapshots).to eq(cg_snap_response)
+    end
+  end
+
+  context 'get_oldest_sequence_no' do
+    it 'should return parsed body if status code is 200' do
+      sys_id = 'ictm-aaol-pp2_18-19'
+      cg_name = 'CG_CFW_Upgrade'
+      cg_id = '2A00000060080E50001F6D3800871291565FA14E'
+      seq_no = 2
+      expect(@netapp_api).to receive(:get_consistency_group_id).with(sys_id, cg_name) { cg_id }
+      cg_snapshot_by_cg_id = { '2A00000060080E50001F6D3800871291565FA14E' =>[ {'id' => '123', 'pitSequenceNumber'=>2,'label' => 'CGSnap1','storagesystem' => 'ictm-aaol-pp2_18-19','consistencygroup'=>'CG_CFW_Upgrade'},
+        {'id' => '234', 'pitSequenceNumber'=>3,'label' => 'CGSnap2','storagesystem' => 'ictm-aaol-pp2_18-19','consistencygroup'=>'CG_CFW_Upgrade'}],
+
+         '123789' =>[ {'id' => '345', 'pitSequenceNumber'=>3,'label' => 'CGSnap3','storagesystem' => 'ssid1819','consistencygroup'=>'CGName2'},
+        {'id' => '456', 'pitSequenceNumber'=>4,'label' => 'CGSnap4','storagesystem' => 'ssid1819','consistencygroup'=>'CGName2'}]
+      }
+      expect(@netapp_api).to receive(:get_consistency_group_snapshots).with(sys_id, cg_id) { cg_snapshot_by_cg_id[cg_id] }
+      expect(@netapp_api.get_oldest_sequence_no 'ictm-aaol-pp2_18-19', 'CG_CFW_Upgrade').to eq(seq_no)
+    end
+  end
+
+  context 'create_consistency_group_snapshot' do
+    before :each do
+      @expected_result = [{"id"=>"id_1", "first_key"=>"first_value1", "second_key"=>"second_value2", "third_key"=>"third_value3"}, {"id"=>"id_2", "first_key"=>"first_value1", "second_key"=>"second_value2", "third_key"=>"third_value3"}]
+    end
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/consistency-groups/cg_id/snapshots/' }
+      let(:method_call) { @netapp_api.create_consistency_group_snapshot 'sys_id', 'cg_id', @request_body }
+      let(:fail_message) { 'Failed to create consistency group snapshot' }
+    end
+  end
+
+  context 'remove_oldest_consistency_group_snapshot' do
+    it_behaves_like 'a simple API call', :delete, 204 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/consistency-groups/cg_id/snapshots/seq_no' }
+      let(:method_call) { @netapp_api.remove_oldest_consistency_group_snapshot 'sys_id', 'cg_id', 'seq_no' }
+      let(:fail_message) { 'Failed to remove consistency group snapshot' }
+    end
+  end
+
+  context 'rollback_consistency_group' do
+    it_behaves_like 'a simple API call', :post, 204 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/consistency-groups/cg_id/snapshots/seq_no/rollback' }
+      let(:method_call) { @netapp_api.rollback_consistency_group 'sys_id', 'cg_id', 'seq_no' }
+      let(:fail_message) { 'Failed to rollback consistency group snapshot' }
+    end
+  end
+
+  context 'get_consistency_group_snapshots_by_seqno' do
+    before(:each) do
+      @expect_in_request[:url] = @url + '/devmgr/v2/storage-systems/sys_id/consistency-groups/cg_id/snapshots/seq_no'
+    end
+    it 'should return parsed body if status code is 200' do
+      @body = [{ 'id' => 'id_1',
+               'first_key' => 'first_value1',
+               'second_key' => 'second_value2',
+               'third_key' => 'third_value3' ,
+               'storagesystem' => 'sys_id'},
+             { 'id' => 'id_2',
+               'first_key' => 'first_value1',
+               'second_key' => 'second_value2',
+               'third_key' => 'third_value3',
+               'storagesystem' => 'sys_id'
+             }]
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.get_consistency_group_snapshots_by_seqno 'sys_id', 'cg_id', 'seq_no').to eq(@body)
+    end
+    it 'should raise RuntimeError if status code is not 200' do
+      @response[:status] = 404
+      Excon.stub(@expect_in_request, @response)
+      expect { @netapp_api.get_consistency_group_snapshots_by_seqno 'sys_id', 'cg_id', 'seq_no' }.to raise_status_error('Failed to get snapshot group information', @response)
+    end
+  end
+
+  context 'create_consistency_group_snapshot_view' do
+    it_behaves_like 'a simple API call', :post, 201 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/consistency-groups/cg_id/views' }
+      let(:method_call) { @netapp_api.create_consistency_group_snapshot_view 'sys_id', 'cg_id', @request_body }
+      let(:fail_message) { 'Failed to create consistency group view' }
+    end
+  end
+
+  context 'get_pit_id_by_volume_id' do
+    it_behaves_like 'a call for entity id based on storage system and by entity base volume', 'snapshots', :get_pit_id_by_volume_id  do
+      let(:fail_message) { 'Failed to get snapshot volume information' }
+    end
+  end
+
+  context 'get_volume_id' do
+    it_behaves_like 'a call for entity id based on storage system and by entity volume name', 'volumes', :get_volume_id  do
+      let(:fail_message) { 'Failed to get Volumes'  or 'Failed to get thin Volumes'}
+    end
+  end
+
+  context 'delete_consistency_group_snapshot_view' do
+    it_behaves_like 'a simple API call', :delete, 204 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/consistency-groups/cg_id/views/view_id' }
+      let(:method_call) { @netapp_api.delete_consistency_group_snapshot_view 'sys_id', 'cg_id', 'view_id' }
+      let(:fail_message) { 'Failed to remove consistency group snapshot view' }
+    end
+  end
+
+  context 'get_consistency_group_snapshot_view_id' do
+    it_behaves_like 'a call for entity id based on storage system and by entity view name', 'views', :get_consistency_group_snapshot_view_id  do
+      let(:fail_message) { 'Failed to get consistency groups snapshot views for specified storage system'}
+    end
+  end
+
+  context 'get_consistency_group_views' do
+    before(:each) do
+      @expect_in_request[:url] = @url + '/devmgr/v2/storage-systems/sys_id/consistency-groups/cg_id/views'
+    end
+    it 'should return parsed body if status code is 200' do
+      @body = [{ 'id' => 'id_1',
+               'first_key' => 'first_value1',
+               'second_key' => 'second_value2',
+               'third_key' => 'third_value3' ,
+               'storagesystem' => 'sys_id'},
+             { 'id' => 'id_2',
+               'first_key' => 'first_value1',
+               'second_key' => 'second_value2',
+               'third_key' => 'third_value3',
+               'storagesystem' => 'sys_id'
+             }]
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.get_consistency_group_views 'sys_id', 'cg_id').to eq(@body)
+    end
+    it 'should raise RuntimeError if status code is not 200' do
+      @response[:status] = 404
+      Excon.stub(@expect_in_request, @response)
+      expect { @netapp_api.get_consistency_group_views 'sys_id', 'cg_id'}.to raise_status_error('Failed to get snapshot view information', @response)
+    end
+  end
+
+  context 'get_all_consistency_group_views' do
+    it 'should return parsed body if status code is 200' do
+      
+      cg_groups = [{'id' => '123456','label' => 'CGName1','storagesystem' => 'ssid1617'},
+                  {'id' => '123789','label' => 'CGName2','storagesystem' => 'ssid1819'}] 
+
+      expect(@netapp_api).to receive(:get_all_consistency_groups) { cg_groups }
+
+      cg_views_by_cg_id = { '123456' =>[ {'id' => '123','label' => 'CGView1','storagesystem' => 'ssid1617','consistencygroup'=>'CGName1'},
+        {'id' => '234','label' => 'CGView2','storagesystem' => 'ssid1617','consistencygroup'=>'CGName1'}],
+
+         '123789' =>[ {'id' => '345','label' => 'CGView3','storagesystem' => 'ssid1819','consistencygroup'=>'CGName2'},
+        {'id' => '456','label' => 'CGView4','storagesystem' => 'ssid1819','consistencygroup'=>'CGName2'}]
+      }
+      cg_groups.each do |curcg|
+          expect(@netapp_api).to receive(:get_consistency_group_views).with(curcg['storagesystem'],
+                                                                      curcg['id']) { cg_views_by_cg_id[curcg['id']] }
+      end
+      cg_views_response = [ {'id' => '123','label' => 'CGView1','storagesystem' => 'ssid1617','consistencygroup'=>'CGName1'},
+        {'id' => '234','label' => 'CGView2','storagesystem' => 'ssid1617','consistencygroup'=>'CGName1'},
+        {'id' => '345','label' => 'CGView3','storagesystem' => 'ssid1819','consistencygroup'=>'CGName2'},
+        {'id' => '456','label' => 'CGView4','storagesystem' => 'ssid1819','consistencygroup'=>'CGName2'}]
+      
+      expect(@netapp_api.get_all_consistency_group_views).to eq(cg_views_response)
+    end
+  end
+  
+  context 'get_firmware_files' do
+    before(:each) do
+      @expect_in_request[:url] = @url + '/devmgr/v2/firmware/cfw-files/'
+    end
+    it 'should return parsed body if status code is 200' do
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.get_firmware_files).to eq(@body)
+    end
+    it 'should raise RuntimeError if status code is not 200' do
+      @response[:status] = 404
+      Excon.stub(@expect_in_request, @response)
+      expect { @netapp_api.get_firmware_files}.to raise_status_error('Failed to get uploaded firmware file list', @response)
+    end
+  end
+
+  context 'delete_firmware_file' do
+    it_behaves_like 'a simple API call', :delete, 204 do
+      let(:uri) { '/devmgr/v2/firmware/upload/file' }
+      let(:method_call) { @netapp_api.delete_firmware_file 'file' }
+      let(:fail_message) { 'Failed to delete firmware file' }
+    end
+  end
+
+  context 'check_firmware_compatibility' do
+    before(:each) do
+      @expect_in_request.merge!( :method => :post,
+                                 :url => @url + '/devmgr/v2/firmware/compatibility-check/'
+        )
+    end
+    it 'should return parsed body if status code is 200' do
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.check_firmware_compatibility @request_body).to eq(@body)
+    end
+    it 'should raise RuntimeError if status code is not 200' do
+      @response[:status] = 404
+      Excon.stub(@expect_in_request, @response)
+      expect { @netapp_api.check_firmware_compatibility @request_body}.to raise_status_error('Failed to check compatibility for upgrade firmware controller.', @response)
+    end
+  end
+
+  context 'upgrade_controller_firmware' do
+    before(:each) do
+      @expect_in_request.merge!( :method => :post,
+                                 :url => @url + '/devmgr/v2/storage-systems/sys_id/cfw-upgrade/'
+        )
+    end
+    it 'should return parsed body if status code is 202' do
+      @response[:status] = 202
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.upgrade_controller_firmware 'sys_id', @request_body).to eq(@body)
+    end
+    it 'should raise RuntimeError if status code is not 202' do
+      @response[:status] = 404
+      Excon.stub(@expect_in_request, @response)
+      expect { @netapp_api.upgrade_controller_firmware 'sys_id', @request_body}.to raise_status_error('Failed to upgrade firmware controller', @response)
+    end
+  end
+
+  context 'activate_controller_firmware' do
+    before(:each) do
+      @expect_in_request.merge!( :method => :post,
+                                 :url => @url + '/devmgr/v2/storage-systems/sys_id/cfw-upgrade/activate'
+        )
+    end
+    it 'should return parsed body if status code is 200' do
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.activate_controller_firmware 'sys_id', @request_body).to eq(@body)
+    end
+    it 'should raise RuntimeError if status code is not 200' do
+      @response[:status] = 404
+      Excon.stub(@expect_in_request, @response)
+      expect { @netapp_api.activate_controller_firmware 'sys_id', @request_body}.to raise_status_error('Failed to activate firmware controller', @response)
+    end
+  end
+
+  context 'get_web_proxy_update' do
+    before(:each) do
+      @expect_in_request[:url] = @url + '/devmgr/v2/upgrade'
+    end
+    it 'should return parsed body if status code is 200' do
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.get_web_proxy_update).to eq(@body)
+    end
+    it 'should raise RuntimeError if status code is not 200' do
+      @response[:status] = 404
+      Excon.stub(@expect_in_request, @response)
+      expect { @netapp_api.get_web_proxy_update}.to raise_status_error('Failed to web proxy upgrade detail', @response)
+    end
+  end
+
+  context 'reload_web_proxy_update' do
+    before(:each) do
+      @expect_in_request.merge!( :method => :post,
+                                 :url => @url + '/devmgr/v2/upgrade/reload'
+        )
+    end
+    it 'should return parsed body if status code is 200' do
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.reload_web_proxy_update).to eq(@body)
+    end
+    it 'should raise RuntimeError if status code is not 200' do
+      @response[:status] = 404
+      Excon.stub(@expect_in_request, @response)
+      expect { @netapp_api.reload_web_proxy_update}.to raise_status_error('Failed to reload web proxy updates', @response)
+    end
+  end
+
+  context 'get_events' do
+    before(:each) do
+      @expect_in_request[:url] = @url + '/devmgr/v2/events'
+    end
+    it 'should return parsed body if status code is 200' do
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.get_events)
+    end
+  end
+
+  context 'get_flash_cache' do
+    before(:each) do
+      @expect_in_request[:url] = @url + '/devmgr/v2/storage-systems/sys_id/flash-cache'
+    end
+    it 'should return parsed body if status code is 200' do
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.get_flash_cache 'sys_id').to eq(@body)
+    end
+    it 'should raise RuntimeError if status code is not 200' do
+      @response[:status] = 404
+      Excon.stub(@expect_in_request, @response)
+      expect { @netapp_api.get_flash_cache 'sys_id'}.to raise_status_error('Failed to get flash cache', @response)
+    end
+  end
+
+  context 'get_drives' do
+    before(:each) do
+      @expect_in_request[:url] = @url + '/devmgr/v2/storage-systems/sys_id/drives'
+    end
+    it 'should return parsed body if status code is 200' do
+      Excon.stub(@expect_in_request, @response)
+      expect(@netapp_api.get_drives 'sys_id').to eq(@body)
+    end
+    it 'should raise RuntimeError if status code is not 200' do
+      @response[:status] = 404
+      Excon.stub(@expect_in_request, @response)
+      expect { @netapp_api.get_drives 'sys_id'}.to raise_status_error('Failed to get drives', @response)
+    end
+  end
+
+  context 'suspend_flash_cache' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/flash-cache/suspend' }
+      let(:method_call) { @netapp_api.suspend_flash_cache 'sys_id' }
+      let(:fail_message) { 'Failed to suspend flash cache' }
+    end
+  end
+
+  context 'resume_flash_cache' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/flash-cache/resume' }
+      let(:method_call) { @netapp_api.resume_flash_cache 'sys_id' }
+      let(:fail_message) { 'Failed to resume flash cache' }
+    end
+  end
+
+  context 'create_flash_cache' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/flash-cache' }
+      let(:method_call) { @netapp_api.create_flash_cache 'sys_id', @request_body }
+      let(:fail_message) { 'Failed to create flash cache' }
+    end
+  end
+
+  context 'delete_flash_cache' do
+    it_behaves_like 'a simple API call', :delete, 204 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/flash-cache' }
+      let(:method_call) { @netapp_api.delete_flash_cache 'sys_id'}
+      let(:fail_message) { 'Failed to delete flash cache' }
+    end
+  end
+
+  context 'update_flash_cache' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/flash-cache/configure' }
+      let(:method_call) { @netapp_api.update_flash_cache 'sys_id', @request_body }
+      let(:fail_message) { 'Failed to update flash cache' }
+    end
+  end
+
+  context 'flash_cache_add_drives' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/flash-cache/addDrives' }
+      let(:method_call) { @netapp_api.flash_cache_add_drives 'sys_id', @request_body }
+      let(:fail_message) { 'Failed to add drives to flash cache' }
+    end
+  end
+
+  context 'flash_cache_remove_drives' do
+    it_behaves_like 'a simple API call', :post, 200 do
+      let(:uri) { '/devmgr/v2/storage-systems/sys_id/flash-cache/removeDrives' }
+      let(:method_call) { @netapp_api.flash_cache_remove_drives 'sys_id', @request_body }
+      let(:fail_message) { 'Failed to remove drives to flash cache' }
+    end
+  end
+  
+  
 end

@@ -14,5 +14,5 @@ end
 
 group :jenkins do
   gem 'ci_reporter', '< 2.0'
-  gem 'rcov'
+  gem 'simplecov'
 end
