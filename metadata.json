@@ -1,12 +1,12 @@
 {
   "name": "netapp-netapp_e",
-  "version": "1.0.0",
-  "author": "netapp",
-  "summary": "NetApp E-series storage arrays support for Puppet",
+  "version": "1.0.1",
+  "author": "NetApp",
+  "summary": "NetApp E/EF-series storage arrays support for Puppet",
   "license": "Apache-2.0",
-  "source": "https://forge.puppetlabs.com/netapp/netapp_e",
+  "source": "https://github.com/NetApp/puppet-eseries",
   "project_page": "https://forge.puppetlabs.com/netapp/netapp_e",
-  "issues_url": "https://forge.puppetlabs.com/netapp/netapp_e",
+  "issues_url": "https://github.com/NetApp/puppet-eseries/issues",
   "dependencies": [
     {"name":"puppetlabs-stdlib","version_requirement":">= 1.0.0"}
   ],
@@ -50,5 +50,5 @@
       "version_requirement": ">= 4.0.0"
     }
   ],
-  "description": "Module for Installation of NetApp SANtricity Web Proxy Server and Configuration of Storage Arrays via REST Calls to SANtricity Web Proxy Server"
+  "description": "Module for Installation of NetApp SANtricity Web Proxy Server and Configuration of E and EF Series Storage Arrays via REST Calls to SANtricity Web Proxy Server"
 }
