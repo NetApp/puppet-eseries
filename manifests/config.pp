@@ -29,15 +29,26 @@ define netapp_e::config(
   $username = 'rw',
   $password = 'rw',
   $protocol = 'http',
-  $port = undef,
+  $port = '8080',
   $url = $name,
-  $target = "${settings::confdir}/device/${name}.conf"
+  $target = "${netapp_e::device_conf_dir}/device/${name}.conf",
 ) {
-  include netapp_e::params
-  $owner = $netapp_e::params::owner
-  $group = $netapp_e::params::group
-  $mode = $netapp_e::params::mode
-  file { $target:
+  include netapp_e
+
+  $owner = $netapp_e::owner
+  $group = $netapp_e::group
+  $mode = $netapp_e::mode
+
+  if !defined(File["${netapp_e::device_conf_dir}/device"]) {
+    file { "${netapp_e::device_conf_dir}/device":
+      ensure => directory,
+      owner  => $owner,
+      group  => $group,
+      mode   => $mode,
+    }
+  }
+  
+  file { "${target}":
     ensure  => present,
     owner   => $owner,
     group   => $group,

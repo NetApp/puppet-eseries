@@ -18,13 +18,18 @@ shared_examples 'a string param/property' do |param_name, special_characters|
     unlist(described_class.new(resource)[param_name]).should == value
   end
   it 'should support underscore' do
-    value = '__'
+    value = '_'
+    resource[param_name] = value
+    unlist(described_class.new(resource)[param_name]).should == value
+  end
+  it 'should support dash' do
+    value = '-'
     resource[param_name] = value
     unlist(described_class.new(resource)[param_name]).should == value
   end
   if special_characters
     it 'should support special characters and spaces' do
-      '!£§!@#$%^&*()-+=[]{};\':"\|?/.>,<~` '.split('').each do |char|
+      '!£§!@#$%^&*()+=[]{};\':"\|?/.>,<~` '.split('').each do |char|
         value = 'my' + char + 'name'
         resource[param_name] = value
         unlist(described_class.new(resource)[param_name]).should == value
@@ -32,7 +37,7 @@ shared_examples 'a string param/property' do |param_name, special_characters|
     end
   else
     it 'should not support special characters and spaces' do
-      '!£§!@#$%^&*()-+=[]{};\':"\|?/.>,<~` '.split('').each do |char|
+      '!£§!@#$%^&*()+=[]{};\':"\|?/.>,<~` '.split('').each do |char|
         resource[param_name] = char
         expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
       end
@@ -146,5 +151,28 @@ shared_examples 'a IPv6 param/property' do |param_name|
     value = '2001:0db8:0:0::1428:5abbla'
     resource[param_name] = value
     expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
+  end
+end
+
+shared_examples 'a integer param/property' do |param_name, min_value, max_value|
+  describe 'should not accept values other than integers' do
+    ['string', :symbol, ['array'], { 'hash' => 'value' }].each do |val|
+      it "#{val}" do
+        resource[param_name] = val
+        expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
+      end
+    end
+  end
+  it 'should not accept values less than min_value' do
+    if min_value 
+      resource[param_name] = min_value - 1 
+      expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
+    end
+  end
+  it 'should not accept values more than max_value' do
+    if max_value
+      resource[param_name] = max_value + 1 
+      expect { described_class.new(resource) }.to raise_error Puppet::ResourceError
+    end
   end
 end

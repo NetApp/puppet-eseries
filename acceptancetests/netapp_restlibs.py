@@ -69,6 +69,10 @@ resources = {
 "async-mirror-test" : "/storage-systems/{array_id}/async-mirrors/{id}/test",
 "async-mirror-targets" : "/storage-systems/{array_id}/async-mirrors/arvm-arrays",
 "ethernet-interfaces":"/storage-systems/{array_id}/configuration/ethernet-interfaces",
+"web_proxy":"/upgrade",
+"firmware-cfw-file":"/firmware/cfw-files/",
+"storage-system-graph":"/storage-systems/{array_id}/graph",
+"flashCache":"/storage-systems/{array_id}/flash-cache"
 }
 
 class ArrayInaccessibleException(Exception):

@@ -42,8 +42,9 @@ describe Puppet::Type.type(:netapp_e_storage_system) do
 
   describe 'when validating values' do
     context 'for name' do
-      it_behaves_like 'a string param/property', :name
+      it_behaves_like 'a string param/property', :name, false
     end
+
     context 'for password' do
       it_behaves_like 'a string param/property', :password, true
     end

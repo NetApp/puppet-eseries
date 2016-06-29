@@ -43,7 +43,7 @@ class MyTestSuite(unittest2.TestCase):
 
     # IMPORTANT - one line for one option!!!
 
-    manifest_frame = 'node "netapp.local" {{\n {inner_sections}\n }}\n'
+    manifest_frame = 'node "proxy_device_config" {{\n {inner_sections}\n }}\n'
 
     manifest_storage_system_section = \
 '''
@@ -192,6 +192,174 @@ netapp_e_network_interface {{"{macAddr}":
       type          => '{type}'
     }}
 '''
+    
+    manifest_consistency_group_section = \
+'''
+    netapp_e_consistency_group {{'consistency-group':
+        consistencygroup        => '{cg_id}',
+        ensure                  => {ensure},
+        storagesystem           => '{system_id}',
+        fullwarnthresholdpercent=> {full_threshold},
+        autodeletethreshold     => {auto_threshold},
+        repositoryfullpolicy    => '{repositoryfullpolicy}',
+        rollbackpriority        => '{rollbackpriority}',
+    }}
+'''
+
+    manifest_consistency_group_member_volume_section = \
+'''
+    netapp_e_consistency_members{{ 'member_volume':
+      volume            => '{vol_id}',
+      ensure            => {ensure},
+      storagesystem     => '{system_id}',
+      consistencygroup  => '{cg_id}',
+      repositorypool    => '{pool_id}',
+      scanmedia         => {scanmedia},
+      validateparity    => {validateparity},
+      repositorypercent => {repositorypercent},
+    }}
+'''
+  
+    manifest_consistency_group_multiple_member_volume_section = \
+'''
+    netapp_e_consistency_multiple_members{{ 'ADD-BATCH-VOLUMES':
+      storagesystem     => '{system_id}',
+      consistencygroup  => '{cg_id}',
+      volumes           => {volumes},
+    }}
+'''
+
+    manifest_consistency_group_snapshot_section = \
+'''
+    netapp_e_consistency_group_snapshot {{'snapshot':
+        ensure                  => {ensure},
+        storagesystem           => '{system_id}',
+        consistencygroup        => '{consistencygroup}'
+    }}
+'''
+
+    manifest_consistency_group_rollback_section = \
+'''
+    netapp_e_consistency_group_rollback {{'consistencygrouprollback':
+        snapshotnumber          => {snapshotnumber},
+        storagesystem           => '{system_id}',
+        consistencygroup        => '{consistencygroup}'
+    }}
+'''
+
+    manifest_consistency_group_snapshot_view_by_snapshot_section = \
+'''
+    netapp_e_consistency_group_snapshot_view {{'viewbysnapshot':
+        ensure                  => {ensure},
+        snapshotnumber          => {snapshotnumber},
+        storagesystem           => '{system_id}',
+        viewname                => '{viewname}',
+        viewtype                => '{viewtype}',
+        validateparity          =>  {validateparity},
+        consistencygroup        => '{consistencygroup}',
+    }}
+'''
+
+    manifest_consistency_group_snapshot_view_by_volume_section = \
+'''
+    netapp_e_consistency_group_snapshot_view {{'viewbyvolume':
+        ensure                  => {ensure},
+        snapshotnumber          => {snapshotnumber},
+        storagesystem           => '{system_id}',
+        viewname                => '{viewname}',
+        viewtype                => '{viewtype}',
+        volume                  => '{volume}',
+        validateparity          =>  {validateparity},
+        consistencygroup        => '{consistencygroup}',
+    }}
+'''
+
+
+    manifest_web_proxy_upgrade = \
+'''
+    netapp_e_web_proxy_upgrade{{ 'web_proxy_upgrade':
+      ensure    => '{ensure}',
+      force     => '{force}',
+    }}
+'''
+  
+    manifest_firmware_file = \
+'''
+    netapp_e_firmware_file {{ 'firmware_file':
+      filename        => '{filename}',
+      folderlocation  => '{folderlocation}',
+      ensure          => '{ensure}',
+      validate_file   => {validatefile},
+    }}
+
+'''
+
+    manifest_firmware_upgrade = \
+'''
+    netapp_e_firmware_upgrade{{ 'firmware_upgrade' :
+      filename            => '{filename}',
+      storagesystem       => '{system_id}',
+      firmwaretype        => '{firmwaretype}',   
+      ensure              => '{ensure}',
+      melcheck            => {melcheck},
+      compatibilitycheck  => {compatibilitycheck},
+      releasedbuildonly   => {releasedbuildonly},
+      waitforcompletion   => {waitforcompletion},
+    }}
+
+'''
+
+    manifest_flash_cache_create_section = \
+'''
+    netapp_e_flash_cache {{'createflashcache':
+        cachename               => '{cachename}',
+        ensure                  => {ensure},
+        storagesystem           => '{system_id}',
+        diskids                 =>  {diskids},
+        enableexistingvolumes   =>  {enableexistingvolumes},
+    }}
+'''
+
+    manifest_flash_cache_suspend_resume_section = \
+'''
+    netapp_e_flash_cache {{'suspendResumeflashcache':
+        cachename               => '{cachename}',
+        ensure                  => {ensure},
+        storagesystem           => '{system_id}',
+        ignorestate             =>  {ignorestate},
+    }}
+'''
+
+    manifest_flash_cache_update_section = \
+'''
+    netapp_e_flash_cache {{'updateflashcache':
+        cachename       => '{cachename}',
+        ensure          => {ensure},
+        storagesystem   => '{system_id}',
+        newname         => '{newname}',
+        configtype      => '{configtype}',
+    }}
+'''
+
+    manifest_flash_cache_delete_section = \
+'''
+    netapp_e_flash_cache {{'deleteflashcache':
+        cachename               => '{cachename}',
+        ensure                  => {ensure},
+        storagesystem           => '{system_id}',
+    }}
+'''
+
+    manifest_flash_cache_drive_add_remove_section = \
+'''
+    netapp_e_flash_cache_drives {{'addremovedrives':
+        cachename      => '{cachename}',
+        ensure         => {ensure},
+        storagesystem  => '{system_id}',
+        diskids        =>  {diskids},
+    }}
+'''
+
 ########################################################################################################################
 
     @classmethod
@@ -277,12 +445,13 @@ netapp_e_network_interface {{"{macAddr}":
         cls.log.debug("Running shell command 'puppet device' by subprocess...")
 
         #return subprocess.check_output(['puppet device --debug --user root', '-1'], shell=True)
-        child = subprocess.Popen(['puppet', 'device', '--debug', '--user', 'root', ],
+		#child = subprocess.Popen(['puppet', 'device', '--debug', '--user', 'root', ],
+        child = subprocess.Popen(['puppet', 'device', '--debug', '--user', 'root', '--deviceconfig', '/etc/puppetlabs/puppet/device/proxy_device_config' ],
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.STDOUT)
         cls.output = child.communicate()[0]
         cls.returncode = child.returncode
-
+        
         if verbose:
             cls.log.debug('Output from puppet command:\n {output}\nReturn code: {returncode}\n'.format(output=cls.output,
                                                                                                        returncode=cls.returncode))

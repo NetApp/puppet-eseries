@@ -4,6 +4,7 @@ describe Puppet::Util::NetworkDevice::Netapp_e::Device do
   before(:each) do
     @api = double(:api)
     allow(@api).to receive(:login)
+    allow(@api).to receive(:post_key_value)
     allow(NetApp::ESeries::Api).to receive(:new) { @api }
     @password = 'my_password'
     @url = "http://user:#{@password}@example.com"
