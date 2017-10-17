@@ -267,7 +267,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         self.rid_all_BANANAs()
 
         # Assertions
-        assert self.output_errors_has('BANANA_'+rand_hash)
+        assert self.output_errors_has_not('BANANA_'+rand_hash)
 
 #####################################################################################################################
 
@@ -651,9 +651,6 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
 
         new_site_pp = self.manifest_frame.format(inner_sections=self.manifest_storage_system_section.format(**s) +
                                                  self.manifest_storage_pool_section.format(**p))
-        # Remove redundant params
-        new_site_pp = self.remove_line_from_multiline_regexp(new_site_pp, 'raidlevel')
-        new_site_pp = self.remove_line_from_multiline_regexp(new_site_pp, 'diskids')
         self.switch_to_custom_manifest(new_site_pp)
 
         # Run 'puppet device' by subprocess
@@ -828,6 +825,13 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
                                                  r'Netapp_e_volume <| |> -> Netapp_e_storage_pool <| |>')
 
         new_site_pp = self.remove_line_from_multiline_regexp(new_site_pp, 'require')
+
+        new_site_pp = self.insert_line_to_multiline_regexp(new_site_pp,
+                                                           'thin\s*=>',
+                                                           '      repositorysize    => 10,')
+        new_site_pp = self.insert_line_to_multiline_regexp(new_site_pp,
+                                                           'repositorysize',
+                                                           '      maxrepositorysize => 15,')
 
         self.switch_to_custom_manifest(new_site_pp)
 
@@ -1068,7 +1072,7 @@ class NetApp_Puppet_Module_Test_Suite(MyTestSuite):
         self.log.debug("(after creation manifest) List of hostgroups: {0}".format(hostgroups_after_create_for_print))
 
         #TODO Assertions
-        assert self.output_errors_has('BANANA_HOSTGROUP_{0}'.format(rand_hash))
+        assert hostgroups_before == hostgroups_after_create and self.output_errors_has_not('BANANA_HOSTGROUP_{0}'.format(rand_hash))
 
 #####################################################################################################################
 
